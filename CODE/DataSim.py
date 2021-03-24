@@ -51,6 +51,7 @@ def gen_sim(sim_params, dgp):
 out = gen_sim(sim_params, 'DGP1')
 
 
-m = sm.OLS(out['y'], out['X']).fit()
+
+
 
 	
