@@ -46,3 +46,8 @@ alpha = 100
 psi_a = psi_svd[:, list(np.where(sigma >= alpha))]
 psi_a = psi_a.reshape((psi_a.shape[0], psi_a.shape[2]))
 delta_pc_a = np.linalg.inv(psi_a.T @ psi_a) @ psi_a.T @ out['y']
+
+
+
+
+
