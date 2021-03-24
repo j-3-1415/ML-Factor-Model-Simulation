@@ -19,9 +19,30 @@ delta_hat = np.linalg.inv(new_psi.T @ new_psi) @ new_psi.T @ out['y']
 
 [np.absolute(i) for i in lambda_sq][:10]  # check magnitude of complex part
 
-# for now: phi = psi
-
 # M_t * y = y_hat
 
 # what is lambda without sq?
 
+X = out['X']
+S_xx = (X.T @ X) / T
+S_xx_2 = (X @ X.T) / T
+
+psi_svd, sigma, phi_T_svd = np.linalg.svd(X)
+
+lamb_N, phi_eig = np.linalg.eig(S_xx)
+lamb_T, psi_eig = np.linalg.eig(S_xx_2)
+
+psi_svd, sigma, phi_T_svd, lamb_N, phi_eig, lamb_T, psi_eig = psi_svd.real, sigma.real, phi_T_svd.real, lamb_N.real, phi_eig.real, lamb_T.real, psi_eig.real
+
+phi_eig = phi_eig[:, np.argsort(-1 * lamb_N)]
+psi_eig = psi_eig[:, np.argsort(-1 * lamb_T)]
+
+lamb_N = lamb_N[np.argsort(-1 * lamb_N)]
+lamb_T = lamb_T[np.argsort(-1 * lamb_T)]
+
+# psi_j = (X @ phi_eig[:, 0]) / sigma[0]
+
+alpha = 100
+psi_a = psi_svd[:, list(np.where(sigma >= alpha))]
+psi_a = psi_a.reshape((psi_a.shape[0], psi_a.shape[2]))
+delta_pc_a = np.linalg.inv(psi_a.T @ psi_a) @ psi_a.T @ out['y']
