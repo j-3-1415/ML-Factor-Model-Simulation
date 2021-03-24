@@ -1,6 +1,6 @@
 from CODE.DataSim import *
 
-df = gen_sim(sim_params, 'DGP1')
+out = gen_sim(sim_params, 'DGP1')
 
 # Methods to cover:
 # PCA, PLS, Ridge, LF, LASSO,
@@ -18,6 +18,8 @@ new_psi = psi[:, :num_vals]
 delta_hat = np.linalg.inv(new_psi.T @ new_psi) @ new_psi.T @ out['y']
 
 [np.absolute(i) for i in lambda_sq][:10]  # check magnitude of complex part
+
+# for now: phi = psi
 
 # M_t * y = y_hat
 
@@ -46,3 +48,27 @@ alpha = 100
 psi_a = psi_svd[:, list(np.where(sigma >= alpha))]
 psi_a = psi_a.reshape((psi_a.shape[0], psi_a.shape[2]))
 delta_pc_a = np.linalg.inv(psi_a.T @ psi_a) @ psi_a.T @ out['y']
+
+
+def get_alpha(data, model, rmax):
+    X = data['X']
+    Y = data['y']
+    T = X.shape[0]
+
+    psi_svd, sigma, phi_T_svd = np.linalg.svd(X)
+    psi_svd, sigma, phi_T_svd = psi_svd.real, sigma.real, phi_T_svd.real
+
+    if model == 'PC':
+        GCVs = []
+        for k in range(rmax):
+            psi_a = psi_svd[:, :k]
+            delta_pc = np.linalg.inv(psi_a.T @ psi_a) @ psi_a.T @ Y
+            M_ty = psi_a @ delta_pc
+            GCV = 1 / T * np.linalg.norm(Y - M_ty) ** 2 / (1 - 1 / T * k)
+            GCVs.append((k, GCV))
+        return GCVs
+
+get_alpha(out, 'PC', rmax = 10)
+
+#  optimal k is 4!!!
+
