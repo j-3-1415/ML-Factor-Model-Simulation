@@ -1,6 +1,8 @@
 import random
 import numpy as np
 import re
+import os
+import sys
 import statsmodels.api as sm
 
 sim_params = {'N' : 200,
