@@ -13,6 +13,41 @@ out = gen_sim(sim_params, 'DGP1')
 # 3. Fitted values y_hat -- key: y_hat
 # 4. Optimal penalty parameter -- key: !!depending on model!!
 
+def cv(data, method):
+
+    data = data.copy(deep=True)
+
+    T = data['T']
+    M_t = data['M_t']
+    y = data['y']
+    errors = data['errors']
+    r = data['r']
+
+    M_ty = M_t @ y
+    trM_t = np.trace(M_t)
+    error_norm = np.sum(np.power(errors, 2))
+    sigma_e = np.var(errors)
+
+    if method == 'GCV':
+
+        numer = (1 / T) * error_norm
+        denom = np.power(1 - ((1 / T) * trM_t), 2)
+        crit = numer/denom
+
+    elif method == 'Mallow':
+
+        crit = ((1 / T) * error_norm) + (2 * sigma_e * (1 / T) * trM_t)
+
+    elif method == 'AIC':
+
+        crit = 2 * (r - np.log(error_norm))
+
+    elif method == 'BIC':
+
+        crit = (T * r) - (2 * np.log(error_norm))
+
+    return(crit)
+
 
 def run_model(data, model, method, rmax):
     X = data['X']
@@ -137,3 +172,6 @@ alpha = 100
 psi_a = psi_svd[:, list(np.where(sigma >= alpha))]
 psi_a = psi_a.reshape((psi_a.shape[0], psi_a.shape[2]))
 delta_pc_a = np.linalg.inv(psi_a.T @ psi_a) @ psi_a.T @ out['y']
+
+
+
