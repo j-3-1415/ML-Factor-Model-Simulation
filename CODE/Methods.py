@@ -2,6 +2,7 @@ from CODE.DataSim import *
 
 out = gen_sim(sim_params, 'DGP1')
 
+
 # Methods to cover:
 # PCA, PLS, Ridge, LF, LASSO,
 
@@ -15,7 +16,6 @@ out = gen_sim(sim_params, 'DGP1')
 
 
 def cv(data, method):
-
     data = data.copy(deep=True)
 
     T = data['T']
@@ -33,7 +33,7 @@ def cv(data, method):
 
         numer = (1 / T) * error_norm
         denom = np.power(1 - ((1 / T) * trM_t), 2)
-        crit = numer/denom
+        crit = numer / denom
 
     elif method == 'Mallow':
 
@@ -48,6 +48,7 @@ def cv(data, method):
         crit = (T * r) - (2 * np.log(error_norm))
 
     return crit
+
 
 def run_model(data, model, method, rmax):
     X = data['X']
@@ -85,7 +86,7 @@ def run_model(data, model, method, rmax):
                 delta_pc = np.linalg.inv(psi_a.T @ psi_a) @ psi_a.T @ Y
                 M_ty = psi_a @ delta_pc
                 sigma = np.var(Y - M_ty)  # consistent estimator of variance = variance of residuals
-                Mallow = (1/T) * np.linalg.norm(Y - M_ty) ** 2 + 2 * sigma * (1/T) * k
+                Mallow = (1 / T) * np.linalg.norm(Y - M_ty) ** 2 + 2 * sigma * (1 / T) * k
                 Mallows.append({'k': k, 'Mallow': Mallow, 'delta': delta_pc, 'y_hat': M_ty})
             opt = min(Mallows, key=lambda x: x['Mallow'])
             print('Model: PC, Method: Mallow')
@@ -95,10 +96,10 @@ def run_model(data, model, method, rmax):
     if model == 'Ridge':
         if method == 'GCV':
             GCVs = []
-            for alpha in np.linspace(0, 1, 100): # change this!!!
+            for alpha in np.linspace(0, 1, 100):  # change this!!!
                 delta_ridge = np.linalg.inv(S_xx + alpha * I) @ S_xy
                 M_ty = X @ delta_ridge
-                M_t = X @ np.linalg.inv(S_xx + alpha * I) @ (X.T/T)
+                M_t = X @ np.linalg.inv(S_xx + alpha * I) @ (X.T / T)
                 GCV = 1 / T * np.linalg.norm(Y - M_ty) ** 2 / (1 - 1 / T * np.trace(M_t))
                 GCVs.append({'GCV': GCV, 'delta': delta_ridge, 'y_hat': M_ty, 'alpha': alpha})
             opt = min(GCVs, key=lambda x: x['GCV'])
@@ -108,19 +109,17 @@ def run_model(data, model, method, rmax):
 
         if method == 'Mallow':
             Mallows = []
-            for alpha in np.linspace(0, 1, 100): # change this!!!
+            for alpha in np.linspace(0, 1, 100):  # change this!!!
                 delta_ridge = np.linalg.inv(S_xx + alpha * I) @ S_xy
                 M_ty = X @ delta_ridge
-                M_t = X @ np.linalg.inv(S_xx + alpha * I) @ (X.T/T)
+                M_t = X @ np.linalg.inv(S_xx + alpha * I) @ (X.T / T)
                 sigma = np.var(Y - M_ty)  # consistent estimator of variance = variance of residuals
-                Mallow = (1/T) * np.linalg.norm(Y - M_ty) ** 2 + 2 * sigma * (1/T) * np.trace(M_t)
+                Mallow = (1 / T) * np.linalg.norm(Y - M_ty) ** 2 + 2 * sigma * (1 / T) * np.trace(M_t)
                 Mallows.append({'Mallow': Mallow, 'delta': delta_ridge, 'y_hat': M_ty, 'alpha': alpha})
             opt = min(Mallows, key=lambda x: x['Mallow'])
             print('Model: Ridge, Method: Mallow')
             print('Optimal alpha = ' + str(opt['alpha']) + ' with Mallow = ' + str(opt['Mallow']))
             return opt
-
-
 
 
 mods = run_model(out, 'PC', 'GCV', rmax=10)
@@ -152,20 +151,26 @@ def get_model_output(data, model, alpha):
         q = I[:, num_vals]
 
     elif model == 'Ridge':
-        q = lambda_sq/(lambda_sq+alpha)
+        q = lambda_sq / (lambda_sq + alpha)
+
+    elif model == 'LF':
+        d = 0.018 / np.amax(lambda_sq)  # as defined on page 327
+        q = 1 - np.power((1 - d * lambda_sq), (1 / alpha))
 
     M_ty = (1 / T) * np.sum(q @ psi @ psi.T) * y
 
     return M_ty
 
+
 yhat_pc = get_model_output(out, 'PC', 1)
 yhat_ridge = get_model_output(out, 'Ridge', 0.1)
+yhat_lf = get_model_output(out, 'LF', 0.1)
 
 
 ################### LEGACY/EXPERIMENT CODE #####################
 
 # legacy method with straight forward eigenvectors for PCA (no SVD)
-S_xx = np.matmul(out['X'], out['X'].T)/200
+S_xx = np.matmul(out['X'], out['X'].T) / 200
 lambda_sq, psi = np.linalg.eig(S_xx)
 lambda_sq = lambda_sq.real
 psi = psi.real
@@ -178,7 +183,6 @@ new_psi = psi[:, :num_vals]
 delta_hat = np.linalg.inv(new_psi.T @ new_psi) @ new_psi.T @ out['y']
 
 [np.absolute(i) for i in lambda_sq][:10]  # check magnitude of complex part
-
 
 # cross checking the equivalence between eigenvectors and SVD
 
@@ -207,3 +211,4 @@ psi_a = psi_svd[:, list(np.where(sigma >= alpha))]
 psi_a = psi_a.reshape((psi_a.shape[0], psi_a.shape[2]))
 delta_pc_a = np.linalg.inv(psi_a.T @ psi_a) @ psi_a.T @ out['y']
 
+q = 1 - np.power((1 - d * lambda_sq), (1 / 0.01))
