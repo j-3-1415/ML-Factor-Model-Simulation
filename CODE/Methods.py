@@ -13,6 +13,7 @@ out = gen_sim(sim_params, 'DGP1')
 # 3. Fitted values y_hat -- key: y_hat
 # 4. Optimal penalty parameter -- key: !!depending on model!!
 
+
 def cv(data, method):
 
     data = data.copy(deep=True)
@@ -46,8 +47,7 @@ def cv(data, method):
 
         crit = (T * r) - (2 * np.log(error_norm))
 
-    return(crit)
-
+    return crit
 
 def run_model(data, model, method, rmax):
     X = data['X']
@@ -61,6 +61,8 @@ def run_model(data, model, method, rmax):
 
     psi_svd, sigma, phi_T_svd = np.linalg.svd(X)
     psi_svd, sigma, phi_T_svd = psi_svd.real, sigma.real, phi_T_svd.real
+
+    # lambda_sq, psi = np.linalg.eig(S_xx)
 
     if model == 'PC':
         if method == 'GCV':
@@ -127,6 +129,38 @@ mods = run_model(out, 'Ridge', 'GCV', rmax=10)
 mods = run_model(out, 'Ridge', 'Mallow', rmax=10)
 
 
+# alternatively: start from equation 14
+def get_model_output(data, model, alpha):
+    X = data['X']
+    y = data['y']
+    T = X.shape[0]
+    N = X.shape[1]
+
+    S_xx = (X.T @ X) / T
+    S_xy = (X.T @ y) / T
+    I = np.identity(N)
+
+    psi_svd, sigma, phi_T_svd = np.linalg.svd(X)
+    psi_svd, sigma, phi_T_svd = psi_svd.real, sigma.real, phi_T_svd.real
+
+    lambda_sq, psi = np.linalg.eig(S_xx)
+    lambda_sq = lambda_sq.real
+    psi = psi.real
+
+    if model == 'PC':
+        num_vals = len([i for i in lambda_sq if i >= alpha])
+        q = I[:, num_vals]
+
+    elif model == 'Ridge':
+        q = lambda_sq/(lambda_sq+alpha)
+
+    M_ty = (1 / T) * np.sum(q @ psi @ psi.T) * y
+
+    return M_ty
+
+yhat_pc = get_model_output(out, 'PC', 1)
+yhat_ridge = get_model_output(out, 'Ridge', 0.1)
+
 
 ################### LEGACY/EXPERIMENT CODE #####################
 
@@ -172,6 +206,4 @@ alpha = 100
 psi_a = psi_svd[:, list(np.where(sigma >= alpha))]
 psi_a = psi_a.reshape((psi_a.shape[0], psi_a.shape[2]))
 delta_pc_a = np.linalg.inv(psi_a.T @ psi_a) @ psi_a.T @ out['y']
-
-
 
