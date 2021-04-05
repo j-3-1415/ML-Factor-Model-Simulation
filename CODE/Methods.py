@@ -1,7 +1,10 @@
-from CODE.DataSim import *
+# from CODE.DataSim import *
+from DataSim import *
 
 out = gen_sim(sim_params, 'DGP1')
-
+out['alphas'] = [1]
+out['k'] = [None]
+out['criteria'] = np.empty(len(out['alphas']))
 
 # Methods to cover:
 # PCA, PLS, Ridge, LF, LASSO,
@@ -14,17 +17,64 @@ out = gen_sim(sim_params, 'DGP1')
 # 3. Fitted values y_hat -- key: y_hat
 # 4. Optimal penalty parameter -- key: !!depending on model!!
 
+# alternatively: start from equation 14
+def get_model_output(data, model, iteration):
 
-def cv(data, method):
-    data = data.copy(deep=True)
+	data = data.copy()
 
-    T = data['T']
-    M_t = data['M_t']
+    X = data['X']
     y = data['y']
-    errors = data['errors']
-    r = data['r']
+    T = X.shape[0]
+    N = X.shape[1]
 
-    M_ty = M_t @ y
+    S_xx = (X.T @ X) / T
+    S_xy = (X.T @ y) / T
+
+    psi_svd, sigma, phi_T_svd = np.linalg.svd(X)
+    psi_svd, sigma, phi_T_svd = psi_svd.real, sigma.real, phi_T_svd.real
+
+    lambda_sq, psi = np.linalg.eig(S_xx)
+    lambda_sq = lambda_sq.real
+    psi = psi.real
+
+    alpha = out['alphas'][iteration]
+    k = out['k'][iteration]
+
+    if model == 'PC':
+    	q = np.array([int(val >= alpha) for val in lambda_sq])
+
+    elif model == 'Ridge':
+        q = lambda_sq / (lambda_sq + alpha)
+
+    elif model == 'LF':
+        d = 0.018 / np.amax(lambda_sq)  # as defined on page 327
+        q = 1 - np.power((1 - d * lambda_sq), (1 / alpha))
+
+    q = q.reshape((q.shape[0], 1)).T
+
+    psi_psi = psi_svd @ psi_svd.T
+
+    M_t = (1 / T) * np.sum(np.multiply(q, psi_psi[:, :, None]), axis=2)
+    M_ty = (1 / T) * np.sum(np.multiply(q, psi_psi @ y), axis=1)
+
+    data['M_t'] = M_t
+    data['M_ty'] = M_ty
+
+    return(data)
+
+def cv(data, model, method, iteration):
+    data = data.copy()
+
+    data = get_model_output(data, model, iteration)
+
+    M_t = data['M_t']
+	M_ty = data['M_ty']
+    y = data['y']
+    # r = data['r']
+    errors = y - M_ty
+
+    T = y.shape[0]
+
     trM_t = np.trace(M_t)
     error_norm = np.sum(np.power(errors, 2))
     sigma_e = np.var(errors)
@@ -39,16 +89,76 @@ def cv(data, method):
 
         crit = ((1 / T) * error_norm) + (2 * sigma_e * (1 / T) * trM_t)
 
-    elif method == 'AIC':
+    # elif method == 'AIC':
 
-        crit = 2 * (r - np.log(error_norm))
+    #     crit = 2 * (r - np.log(error_norm))
 
-    elif method == 'BIC':
+    # elif method == 'BIC':
 
-        crit = (T * r) - (2 * np.log(error_norm))
+    #     crit = (T * r) - (2 * np.log(error_norm))
 
-    return crit
+    data['criteria'][iteration] = crit
 
+    return data
+
+out = get_model_output(out, 'PC', 0)
+out = get_model_output(out, 'Ridge', 0)
+out = get_model_output(out, 'LF', 0)
+
+out = cv(out, 'Ridge', 'GCV', 0)
+
+
+
+
+
+
+
+
+################### LEGACY/EXPERIMENT CODE #####################
+
+# legacy method with straight forward eigenvectors for PCA (no SVD)
+S_xx = np.matmul(out['X'], out['X'].T) / 200
+lambda_sq, psi = np.linalg.eig(S_xx)
+lambda_sq = lambda_sq.real
+psi = psi.real
+
+alpha = lambda_sq[10]
+
+num_vals = len([i for i in lambda_sq if i >= alpha])
+new_psi = psi[:, :num_vals]
+
+delta_hat = np.linalg.inv(new_psi.T @ new_psi) @ new_psi.T @ out['y']
+
+[np.absolute(i) for i in lambda_sq][:10]  # check magnitude of complex part
+
+# cross checking the equivalence between eigenvectors and SVD
+
+X = out['X']
+T = X.shape[0]
+S_xx = (X.T @ X) / T
+S_xx_2 = (X @ X.T) / T
+
+psi_svd, sigma, phi_T_svd = np.linalg.svd(X)
+
+lamb_N, phi_eig = np.linalg.eig(S_xx)
+lamb_T, psi_eig = np.linalg.eig(S_xx_2)
+
+psi_svd, sigma, phi_T_svd, lamb_N, phi_eig, lamb_T, psi_eig = psi_svd.real, sigma.real, phi_T_svd.real, lamb_N.real, phi_eig.real, lamb_T.real, psi_eig.real
+
+phi_eig = phi_eig[:, np.argsort(-1 * lamb_N)]
+psi_eig = psi_eig[:, np.argsort(-1 * lamb_T)]
+
+lamb_N = lamb_N[np.argsort(-1 * lamb_N)]
+lamb_T = lamb_T[np.argsort(-1 * lamb_T)]
+
+# psi_j = (X @ phi_eig[:, 0]) / sigma[0]
+
+alpha = 100
+psi_a = psi_svd[:, list(np.where(sigma >= alpha))]
+psi_a = psi_a.reshape((psi_a.shape[0], psi_a.shape[2]))
+delta_pc_a = np.linalg.inv(psi_a.T @ psi_a) @ psi_a.T @ out['y']
+
+q = 1 - np.power((1 - d * lambda_sq), (1 / 0.01))
 
 def run_model(data, model, method, rmax):
     X = data['X']
@@ -126,89 +236,3 @@ mods = run_model(out, 'PC', 'GCV', rmax=10)
 mods = run_model(out, 'PC', 'Mallow', rmax=10)
 mods = run_model(out, 'Ridge', 'GCV', rmax=10)
 mods = run_model(out, 'Ridge', 'Mallow', rmax=10)
-
-
-# alternatively: start from equation 14
-def get_model_output(data, model, alpha):
-    X = data['X']
-    y = data['y']
-    T = X.shape[0]
-    N = X.shape[1]
-
-    S_xx = (X.T @ X) / T
-    S_xy = (X.T @ y) / T
-    I = np.identity(N)
-
-    psi_svd, sigma, phi_T_svd = np.linalg.svd(X)
-    psi_svd, sigma, phi_T_svd = psi_svd.real, sigma.real, phi_T_svd.real
-
-    lambda_sq, psi = np.linalg.eig(S_xx)
-    lambda_sq = lambda_sq.real
-    psi = psi.real
-
-    if model == 'PC':
-        num_vals = len([i for i in lambda_sq if i >= alpha])
-        q = I[:, num_vals]
-
-    elif model == 'Ridge':
-        q = lambda_sq / (lambda_sq + alpha)
-
-    elif model == 'LF':
-        d = 0.018 / np.amax(lambda_sq)  # as defined on page 327
-        q = 1 - np.power((1 - d * lambda_sq), (1 / alpha))
-
-    M_ty = (1 / T) * np.sum(q @ psi @ psi.T) * y
-
-    return M_ty
-
-
-yhat_pc = get_model_output(out, 'PC', 1)
-yhat_ridge = get_model_output(out, 'Ridge', 0.1)
-yhat_lf = get_model_output(out, 'LF', 0.1)
-
-
-################### LEGACY/EXPERIMENT CODE #####################
-
-# legacy method with straight forward eigenvectors for PCA (no SVD)
-S_xx = np.matmul(out['X'], out['X'].T) / 200
-lambda_sq, psi = np.linalg.eig(S_xx)
-lambda_sq = lambda_sq.real
-psi = psi.real
-
-alpha = lambda_sq[10]
-
-num_vals = len([i for i in lambda_sq if i >= alpha])
-new_psi = psi[:, :num_vals]
-
-delta_hat = np.linalg.inv(new_psi.T @ new_psi) @ new_psi.T @ out['y']
-
-[np.absolute(i) for i in lambda_sq][:10]  # check magnitude of complex part
-
-# cross checking the equivalence between eigenvectors and SVD
-
-X = out['X']
-T = X.shape[0]
-S_xx = (X.T @ X) / T
-S_xx_2 = (X @ X.T) / T
-
-psi_svd, sigma, phi_T_svd = np.linalg.svd(X)
-
-lamb_N, phi_eig = np.linalg.eig(S_xx)
-lamb_T, psi_eig = np.linalg.eig(S_xx_2)
-
-psi_svd, sigma, phi_T_svd, lamb_N, phi_eig, lamb_T, psi_eig = psi_svd.real, sigma.real, phi_T_svd.real, lamb_N.real, phi_eig.real, lamb_T.real, psi_eig.real
-
-phi_eig = phi_eig[:, np.argsort(-1 * lamb_N)]
-psi_eig = psi_eig[:, np.argsort(-1 * lamb_T)]
-
-lamb_N = lamb_N[np.argsort(-1 * lamb_N)]
-lamb_T = lamb_T[np.argsort(-1 * lamb_T)]
-
-# psi_j = (X @ phi_eig[:, 0]) / sigma[0]
-
-alpha = 100
-psi_a = psi_svd[:, list(np.where(sigma >= alpha))]
-psi_a = psi_a.reshape((psi_a.shape[0], psi_a.shape[2]))
-delta_pc_a = np.linalg.inv(psi_a.T @ psi_a) @ psi_a.T @ out['y']
-
-q = 1 - np.power((1 - d * lambda_sq), (1 / 0.01))
