@@ -1,10 +1,6 @@
 # from CODE.DataSim import *
 from DataSim import *
-
-out = gen_sim(sim_params, 'DGP1')
-out['alphas'] = [1]
-out['k'] = [None]
-out['criteria'] = np.empty(len(out['alphas']))
+import operator
 
 # Methods to cover:
 # PCA, PLS, Ridge, LF, LASSO,
@@ -26,36 +22,55 @@ def get_model_output(data, model, iteration):
     y = data['y']
     T = X.shape[0]
     N = X.shape[1]
+    r_max = data['r_max']
 
     S_xx = (X.T @ X) / T
     S_xy = (X.T @ y) / T
+    I = np.identity(S_xx.shape[0])
 
     psi_svd, sigma, phi_T_svd = np.linalg.svd(X)
     psi_svd, sigma, phi_T_svd = psi_svd.real, sigma.real, phi_T_svd.real
+    psi_svd = psi_svd[:, :r_max]
 
     lambda_sq, psi = np.linalg.eig(S_xx)
-    lambda_sq = lambda_sq.real
-    psi = psi.real
-
-    alpha = out['alphas'][iteration]
-    k = out['k'][iteration]
+    lambda_sq = lambda_sq.real[:r_max]
+    psi = psi.real[:, :r_max]
 
     if model == 'PC':
-    	q = np.array([int(val >= alpha) for val in lambda_sq])
+    	k = data['k'][iteration]
+    	lambda_sq[:k] = 1
+    	lambda_sq[k:] = 0
+    	q = lambda_sq
 
     elif model == 'Ridge':
-        q = lambda_sq / (lambda_sq + alpha)
+    	alpha = data['alphas'][iteration]
+     	q = lambda_sq / (lambda_sq + alpha)
 
     elif model == 'LF':
+    	alpha = data['alphas'][iteration]
         d = 0.018 / np.amax(lambda_sq)  # as defined on page 327
         q = 1 - np.power((1 - d * lambda_sq), (1 / alpha))
 
+    elif model == 'PLS':
+    	lambda_k = lambda_sq[:k]
+    	p_mat = (y.T @ psi_svd[:, :k])[0]
+    	lambda_mat = np.power(lambda_k, 2)
+    	V_norm = np.product(lambda_k[1:] - lambda_k[:-1])
+    	numer = np.multiply(p_mat, lambda_mat) * V_norm
+    	weights = (numer) / np.sum(numer)
+    	weights = weights.reshape((weights.shape[0], 1))
+    	q = np.empty(k)
+    	for i in range(k):
+    		prod = 1
+    		for j in range(k):
+    			prod = prod * (1 - (lambda_k[i]/lambda_k[j]))
+    			print(prod)
+    		q[i] = 1 - np.sum(weights * prod)
+
     q = q.reshape((q.shape[0], 1)).T
 
-    psi_psi = psi_svd @ psi_svd.T
-
-    M_t = (1 / T) * np.sum(np.multiply(q, psi_psi[:, :, None]), axis=2)
-    M_ty = (1 / T) * np.sum(np.multiply(q, psi_psi @ y), axis=1)
+    M_t = (1/T) * np.sum(np.multiply(q, psi_svd[:,None,:]) @ psi_svd.T, axis=1)
+    M_ty = M_t @ y
 
     data['M_t'] = M_t
     data['M_ty'] = M_ty
@@ -70,8 +85,10 @@ def cv(data, model, method, iteration):
     M_t = data['M_t']
 	M_ty = data['M_ty']
     y = data['y']
-    # r = data['r']
     errors = y - M_ty
+
+    if model in ['PC', 'PLS']:
+    	r = data['k'][iteration]
 
     T = y.shape[0]
 
@@ -89,30 +106,62 @@ def cv(data, model, method, iteration):
 
         crit = ((1 / T) * error_norm) + (2 * sigma_e * (1 / T) * trM_t)
 
-    # elif method == 'AIC':
+    elif method == 'AIC':
 
-    #     crit = 2 * (r - np.log(error_norm))
+        crit = 2 * (r - np.log(error_norm))
 
-    # elif method == 'BIC':
+    elif method == 'BIC':
 
-    #     crit = (T * r) - (2 * np.log(error_norm))
+        crit = (T * r) - (2 * np.log(error_norm))
 
     data['criteria'][iteration] = crit
 
-    return data
+    return(data)
 
-out = get_model_output(out, 'PC', 0)
-out = get_model_output(out, 'Ridge', 0)
-out = get_model_output(out, 'LF', 0)
+# out = get_model_output(out, 'PC', 0)
+# out = get_model_output(out, 'Ridge', 0)
+# out = get_model_output(out, 'LF', 0)
 
-out = cv(out, 'Ridge', 'GCV', 0)
+N = 200
+T = 500
+sims = 5
+DGP = 1
+best = np.ones(sims)
+model = 'PC'
+eval_form = 'AIC'
+crit_var = ['alphas', 'k'][model in ['PC', 'PLS']]
+r_max = sim_params['r_max'][DGP-1]
 
+crit_dict = {'k' : 
+	{'PC' : [list(range(1, (r_max + 1)))] * 6,
+	'PLS' : [list(range(1, (r_max + 1)))] * 6},
+	'alphas' :
+	{'Ridge' : [N * np.arange(0, 0.1, 0.001), 
+				N * np.arange(0, 0.01, 0.0001),
+				N * np.arange(0, 0.1, 0.0005),
+				N * np.arange(0, 0.1, 0.001),
+				N * np.arange(0, 0.15, 0.001),
+				N * np.arange(0, 0.1, 0.001)],
+	'LF' : [N * np.arange(0.000001, 0.0003, 0.00002),
+			N * np.arange(0.00001, 0.0002, 0.00001),
+			N * np.arange(0.000001, 0.00005, 0.0000025),
+			N * np.arange(0.000001, 0.0004, 0.00001),
+			N * np.arange(0.000001, 0.0004, 0.00002),
+			N * np.arange(0.000001, 0.016, 0.001)]}
+	}
 
+for sim in range(sims):
 
+	sim_data = gen_sim(sim_params, 'DGP' + str(DGP), N, T)
+	sim_data[crit_var] = crit_dict[crit_var][model][DGP-1]
+	sim_data['criteria'] = np.ones(len(sim_data[crit_var]))
 
+	for i in range(len(sim_data[crit_var])):
 
+		sim_data = cv(sim_data, model, eval_form, i)
 
-
+	best_dict = dict(zip(sim_data[crit_var], sim_data['criteria']))
+	best[sim] = min(best_dict.items(), key=operator.itemgetter(1))[0]
 
 ################### LEGACY/EXPERIMENT CODE #####################
 
