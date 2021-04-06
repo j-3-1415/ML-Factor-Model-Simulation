@@ -5,16 +5,13 @@ import os
 import sys
 import statsmodels.api as sm
 
-sim_params = {'N' : 200,
-	'T' : 500,
+sim_params = {
 	'r' : [4, 50, 5, 5, 200, 1],
 	'r_max' : [14, 200, 15, 15, 200, 11],
 	'r_iter' : 1}
 
-def gen_params(sim_params):
+def gen_params(sim_params, N, T):
 
-	N = sim_params['N']
-	T = sim_params['T']
 	r = sim_params['r']
 	r_max = sim_params['r_max']
 	r_iter = sim_params['r_iter']
@@ -35,9 +32,9 @@ def gen_params(sim_params):
 
 	return(params)
 
-def gen_sim(sim_params, dgp):
+def gen_sim(sim_params, dgp, N, T):
 
-	params = gen_params(sim_params)
+	params = gen_params(sim_params, N, T)
 
 	F = params[dgp]['F']
 	Lambda = params[dgp]['lambda']
@@ -47,10 +44,12 @@ def gen_sim(sim_params, dgp):
 
 	sim_output = {'y' : np.matmul(F, theta) + nu, 'X' : np.matmul(F, Lambda) + xi}
 
+	sim_output['r_max'] = sim_params['r_max'][int(dgp[-1]) - 1]
+
 	return(sim_output)
 
 
-out = gen_sim(sim_params, 'DGP1')
+out = gen_sim(sim_params, 'DGP1', 200, 500)
 
 
 
