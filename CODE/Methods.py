@@ -1,5 +1,5 @@
-from CODE.DataSim import *
-# from DataSim import *
+# from CODE.DataSim import *
+from DataSim import *
 import operator
 import pandas as pd
 
@@ -33,13 +33,11 @@ def get_model_output(data, model, iteration):
     psi_svd, sigma, phi_T_svd = psi_svd.real, sigma.real, phi_T_svd.real
 
     lambda_sq, psi = np.linalg.eig(S_xx)
-    lambda2, psi2 = np.linalg.eig(S_xxT)
     lambda_sq, psi = lambda_sq.real, psi.real
 
     if model == 'PC':
         psi_svd = psi_svd[:, :data['k'][iteration]]
         M_t = psi_svd @ np.linalg.inv(psi_svd.T @ psi_svd) @ psi_svd.T
-    # M_ty = M_t @ y
 
     elif model == 'Ridge':
         q = lambda_sq / (lambda_sq + data['alphas'][iteration])
@@ -63,7 +61,7 @@ def get_model_output(data, model, iteration):
         M_t = X @ V_k @ np.linalg.inv(V_k.T @ X.T @ X @ V_k) @ V_k.T @ X.T
 
     elif model == 'BaiNg':
-
+    	lamb2, psi2 = np.linalg.eig((X @ X.T) / T)
         F = np.sqrt(T) * psi2[:, :data['k'][iteration]]
         lamb = (1 / T) * (F.T @ X)
         V = 0
@@ -71,7 +69,7 @@ def get_model_output(data, model, iteration):
             for t in range(T):
                 V += np.power(X[t, i] - (lamb[:, i] @ F[t, :]), 2)
         V = (1 / (N * T)) * V
-        PC = V + (data['k'][iteration] * (2 / T))
+        PC = V * (1 + (data['k'][iteration] * (N + T) * np.log((N * T) / (N + T))))
         data['criteria'][iteration] = PC
         return(data)
 
@@ -117,7 +115,7 @@ def cv(data, model, method, iteration):
 
     elif method == 'BIC':
 
-        crit = -1 * ((T * r) - (2 * np.log(error_norm)))
+        crit = 1 * ((T * r) - (2 * np.log(error_norm)))
 
     elif method == 'LOO_CV':
         diag = 1 - np.diag(M_t)
@@ -127,7 +125,7 @@ def cv(data, model, method, iteration):
 
     return(data)
 
-def monte_carlo(monte_params, sim_params):
+def monte_carlo(monte_params):
     N = monte_params['N']
     T = monte_params['T']
     sims = monte_params['sims']
@@ -136,11 +134,15 @@ def monte_carlo(monte_params, sim_params):
     model = monte_params['model']
     eval_form = monte_params['eval']
     crit_var = ['alphas', 'k'][model in ['PC', 'PLS', 'BaiNg']]
-    r_max = sim_params['r_max'][DGP-1]
+	sim_params = {
+		'r' : [4, 50, 5, 5, N, 1],
+		'r_max' : [14, min(N, (T/2)), min(15, min(N, (T/2))), 15, min(N, (T/2)), 11]
+	}
+    r_max = int(sim_params['r_max'][DGP-1])
 
     crit_dict = {'k' : 
         {'PC' : [list(range(0, (r_max + 1)))] * 6,
-        'PLS' : [list(range(1, (r_max + 1)))] * 6,
+        'PLS' : [list(range(0, (r_max + 1)))] * 6,
         'BaiNg' : [list(range(0, (r_max + 1)))] * 6},
         'alphas' :
         {'Ridge' : [N * np.arange(0, 0.1, 0.001), 
@@ -184,13 +186,13 @@ def monte_carlo(monte_params, sim_params):
 monte_params = {
     'N' : 100,
     'T' : 50,
-    'sims' : 25,
+    'sims' : 50,
     'DGP' : 1,
     'model' : 'BaiNg',
-    'eval' : 'LOO_CV'
+    'eval' : 'GCV'
 }
 
-monte_carlo(monte_params, sim_params)
+monte_carlo(monte_params)
 
 
 sizes = ['500x200', '100x50']
@@ -203,5 +205,6 @@ check.loc[:, ['DGP' + str(i+1) for i in range(6)]] = 'No'
 check = check[~((check['Model']!='PLS')&(check['Eval'] == 'LOO_CV'))].reset_index().drop('index', axis=1)
 check.loc[check['Model'] == 'BaiNg', 'Eval'] = 'BaiNg'
 check = check[~check.duplicated()].reset_index().drop('index', axis=1)
+check[(check['Model'] == 'PC')&(check['Eval'] == 'GCV')][['DGP1', 'DGP3', 'DGP4']]
 
 
