@@ -47,12 +47,3 @@ def gen_sim(sim_params, dgp, N, T):
 	sim_output['r_max'] = sim_params['r_max'][int(dgp[-1]) - 1]
 
 	return(sim_output)
-
-
-out = gen_sim(sim_params, 'DGP3', 200, 500)
-
-
-
-
-
-	
