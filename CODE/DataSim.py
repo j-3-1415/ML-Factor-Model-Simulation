@@ -5,16 +5,10 @@ import os
 import sys
 import statsmodels.api as sm
 
-sim_params = {
-	'r' : [4, 50, 5, 5, 200, 1],
-	'r_max' : [14, 200, 15, 15, 200, 11],
-	'r_iter' : 1}
-
 def gen_params(sim_params, N, T):
 
 	r = sim_params['r']
 	r_max = sim_params['r_max']
-	r_iter = sim_params['r_iter']
 
 	M = np.divide(np.ones((N, N)), np.array(range(1, (N + 1))).reshape((N, 1)))
 
@@ -43,6 +37,14 @@ def gen_sim(sim_params, dgp, N, T):
 	xi = params[dgp]['xi']
 
 	sim_output = {'y' : F @ theta + nu, 'X' : F @ Lambda + xi}
+
+	if dgp in ['DGP3', 'DGP4']:
+		X = sim_output['X']
+		T = F.shape[0]
+		k = F.shape[1]
+		lamb, psi = np.linalg.eig((X @ X.T) / T)
+		F_hat = psi[:, :k]
+		sim_output['y'] = F_hat @ theta + nu
 
 	sim_output['r_max'] = sim_params['r_max'][int(dgp[-1]) - 1]
 
