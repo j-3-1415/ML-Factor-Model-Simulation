@@ -23,7 +23,7 @@ def get_model_output(data, model, iteration):
     y = data['y']
     T = X.shape[0]
     N = X.shape[1]
-    r_max = data['r_max']
+    # r_max = data['r_max']
 
     S_xx = (X.T @ X) / T
     S_xxT = (X @ X.T) / T
