@@ -1,7 +1,8 @@
-# from CODE.DataSim import *
-from DataSim import *
+from CODE.DataSim import *
+# from DataSim import *
 import operator
 import pandas as pd
+
 
 # Methods to cover:
 # PCA, PLS, Ridge, LF, LASSO,
@@ -61,7 +62,7 @@ def get_model_output(data, model, iteration):
         M_t = X @ V_k @ np.linalg.inv(V_k.T @ X.T @ X @ V_k) @ V_k.T @ X.T
 
     elif model == 'BaiNg':
-    	lamb2, psi2 = np.linalg.eig((X @ X.T) / T)
+        lamb2, psi2 = np.linalg.eig((X @ X.T) / T)
         F = np.sqrt(T) * psi2[:, :data['k'][iteration]]
         lamb = (1 / T) * (F.T @ X)
         V = 0
@@ -71,7 +72,7 @@ def get_model_output(data, model, iteration):
         V = (1 / (N * T)) * V
         PC = V * (1 + (data['k'][iteration] * (N + T) * np.log((N * T) / (N + T))))
         data['criteria'][iteration] = PC
-        return(data)
+        return (data)
 
     data['M_t'] = M_t
     data['M_ty'] = M_t @ y
@@ -84,7 +85,7 @@ def cv(data, model, method, iteration):
 
     data = get_model_output(data, model, iteration)
     if model == 'BaiNg':
-        return(data)
+        return (data)
     M_t = data['M_t']
     M_ty = data['M_ty']
     y = data['y']
@@ -94,9 +95,12 @@ def cv(data, model, method, iteration):
         r = data['k'][iteration]
 
     T = y.shape[0]
+    N = data['X'].shape[1]
 
     trM_t = np.trace(M_t)
     error_norm = np.sum(np.power(errors, 2))
+    # sigma_e = (1/(N - r)) * (errors.T @ errors)
+
     sigma_e = np.var(errors)
 
     if method == 'GCV':
@@ -119,11 +123,12 @@ def cv(data, model, method, iteration):
 
     elif method == 'LOO_CV':
         diag = 1 - np.diag(M_t)
-        crit = (1 / T) * np.sum([(errors[i] / diag[i])**2 for i in range(len(errors))])
+        crit = (1 / T) * np.sum([(errors[i] / diag[i]) ** 2 for i in range(len(errors))])
 
     data['criteria'][iteration] = crit
 
-    return(data)
+    return (data)
+
 
 def monte_carlo(monte_params):
     N = monte_params['N']
@@ -134,30 +139,31 @@ def monte_carlo(monte_params):
     model = monte_params['model']
     eval_form = monte_params['eval']
     crit_var = ['alphas', 'k'][model in ['PC', 'PLS', 'BaiNg']]
-	sim_params = {
-		'r' : [4, 50, 5, 5, N, 1],
-		'r_max' : [14, min(N, (T/2)), min(15, min(N, (T/2))), 15, min(N, (T/2)), 11]
-	}
-    r_max = int(sim_params['r_max'][DGP-1])
 
-    crit_dict = {'k' : 
-        {'PC' : [list(range(0, (r_max + 1)))] * 6,
-        'PLS' : [list(range(0, (r_max + 1)))] * 6,
-        'BaiNg' : [list(range(0, (r_max + 1)))] * 6},
-        'alphas' :
-        {'Ridge' : [N * np.arange(0, 0.1, 0.001), 
-                    N * np.arange(0, 0.01, 0.0001),
-                    N * np.arange(0, 0.1, 0.0005),
-                    N * np.arange(0, 0.1, 0.001),
-                    N * np.arange(0, 0.15, 0.001),
-                    N * np.arange(0, 0.1, 0.001)],
-        'LF' : [N * np.arange(0.000001, 0.0003, 0.00002),
-                N * np.arange(0.00001, 0.0002, 0.00001),
-                N * np.arange(0.000001, 0.00005, 0.0000025),
-                N * np.arange(0.000001, 0.0004, 0.00001),
-                N * np.arange(0.000001, 0.0004, 0.00002),
-                N * np.arange(0.000001, 0.016, 0.001)]}
-        }
+    sim_params = {
+        'r': [4, 50, 5, 5, N, 1],
+        'r_max': [14, min(N, (T / 2)), min(15, min(N, (T / 2))), 15, min(N, (T / 2)), 11]
+    }
+    r_max = int(sim_params['r_max'][DGP - 1])
+
+    crit_dict = {'k':
+                     {'PC': [list(range(0, (r_max + 1)))] * 6,
+                      'PLS': [list(range(0, (r_max + 1)))] * 6,
+                      'BaiNg': [list(range(0, (r_max + 1)))] * 6},
+                 'alphas':
+                     {'Ridge': [N * np.arange(0, 0.1, 0.001),
+                                N * np.arange(0, 0.01, 0.0001),
+                                N * np.arange(0, 0.1, 0.0005),
+                                N * np.arange(0, 0.1, 0.001),
+                                N * np.arange(0, 0.15, 0.001),
+                                N * np.arange(0, 0.1, 0.001)],
+                      'LF': [N * np.arange(0.000001, 0.0003, 0.00002),
+                             N * np.arange(0.00001, 0.0002, 0.00001),
+                             N * np.arange(0.000001, 0.00005, 0.0000025),
+                             N * np.arange(0.000001, 0.0004, 0.00001),
+                             N * np.arange(0.000001, 0.0004, 0.00002),
+                             N * np.arange(0.000001, 0.016, 0.001)]}
+                 }
 
     header = "Simulation|Current Best|Rolling Mean|Rolling Std"
     cols = [len(x) for x in header.split("|")]
@@ -165,7 +171,7 @@ def monte_carlo(monte_params):
     for sim in range(sims):
 
         sim_data = gen_sim(sim_params, 'DGP' + str(DGP), N, T)
-        sim_data[crit_var] = crit_dict[crit_var][model][DGP-1]
+        sim_data[crit_var] = crit_dict[crit_var][model][DGP - 1]
         sim_data['criteria'] = np.ones(len(sim_data[crit_var]))
 
         for i in range(len(sim_data[crit_var])):
@@ -176,24 +182,23 @@ def monte_carlo(monte_params):
         best.append(curr_best)
 
         print("-" * len(header))
-        print("|" + str(sim + 1) + " " * (cols[0] - len(str(sim + 1)) - 1) + "|" + 
-            '{0:.2f}'.format(curr_best) + " " * (cols[1] - len('{0:.2f}'.format(curr_best))) + "|" + 
-            '{0:.2f}'.format(np.mean(best)) + " " * (cols[2] - len('{0:.2f}'.format(np.mean(best)))) + "|" + 
-            '{0:.2f}'.format(np.std(best)) + " " * (cols[3] - len('{0:.2f}'.format(np.std(best))) - 1) + "|")
+        print("|" + str(sim + 1) + " " * (cols[0] - len(str(sim + 1)) - 1) + "|" +
+              '{0:.2f}'.format(curr_best) + " " * (cols[1] - len('{0:.2f}'.format(curr_best))) + "|" +
+              '{0:.2f}'.format(np.mean(best)) + " " * (cols[2] - len('{0:.2f}'.format(np.mean(best)))) + "|" +
+              '{0:.2f}'.format(np.std(best)) + " " * (cols[3] - len('{0:.2f}'.format(np.std(best))) - 1) + "|")
     print("-" * len(header))
 
 
 monte_params = {
-    'N' : 100,
-    'T' : 50,
-    'sims' : 50,
-    'DGP' : 1,
-    'model' : 'BaiNg',
-    'eval' : 'GCV'
+    'N': 100,
+    'T': 50,
+    'sims': 100,
+    'DGP': 1,
+    'model': 'PC',
+    'eval': 'Mallow'
 }
 
 monte_carlo(monte_params)
-
 
 sizes = ['500x200', '100x50']
 models = ['PC', 'PLS', 'Ridge', 'LF', 'BaiNg']
@@ -201,10 +206,8 @@ evals = ['GCV', 'Mallow', 'AIC', 'BIC', 'LOO_CV']
 comb = [[i, j, k] for i in sizes for j in models for k in evals]
 check = pd.DataFrame(comb)
 check.columns = ['TxN', 'Model', 'Eval']
-check.loc[:, ['DGP' + str(i+1) for i in range(6)]] = 'No'
-check = check[~((check['Model']!='PLS')&(check['Eval'] == 'LOO_CV'))].reset_index().drop('index', axis=1)
+check.loc[:, ['DGP' + str(i + 1) for i in range(6)]] = 'No'
+check = check[~((check['Model'] != 'PLS') & (check['Eval'] == 'LOO_CV'))].reset_index().drop('index', axis=1)
 check.loc[check['Model'] == 'BaiNg', 'Eval'] = 'BaiNg'
 check = check[~check.duplicated()].reset_index().drop('index', axis=1)
-check[(check['Model'] == 'PC')&(check['Eval'] == 'GCV')][['DGP1', 'DGP3', 'DGP4']]
-
-
+check[(check['Model'] == 'PC') & (check['Eval'] == 'GCV')][['DGP1', 'DGP3', 'DGP4']]
