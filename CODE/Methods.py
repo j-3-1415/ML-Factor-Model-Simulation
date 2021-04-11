@@ -19,15 +19,16 @@ import pandas as pd
 def get_model_output(data, model, iteration):
     data = data.copy()
 
+    r_max = int(data['r_max'])
+
     X = data['X']
+    # X = X[:, :r_max]
     y = data['y']
     T = X.shape[0]
     N = X.shape[1]
 
     S_xx = (X.T @ X) / T
-    S_xxT = (X @ X.T) / T
     S_xy = (X.T @ y) / T
-    I = np.identity(S_xx.shape[0])
 
     psi_svd, sigma, phi_T_svd = np.linalg.svd(X)
     psi_svd, sigma, phi_T_svd = psi_svd.real, sigma.real, phi_T_svd.real
@@ -38,24 +39,12 @@ def get_model_output(data, model, iteration):
     if model == 'PC':
         psi_svd = psi_svd[:, :data['k'][iteration]]
         M_t = psi_svd @ np.linalg.inv(psi_svd.T @ psi_svd) @ psi_svd.T
+        M_ty = M_t @ y
 
     elif model == 'Ridge':
-        # q = lambda_sq / (lambda_sq + data['alphas'][iteration])
-        # q = q.reshape(1, q.shape[0])
-        # M_t = psi_svd @ np.linalg.inv(psi_svd.T @ psi_svd) @ psi_svd.T
-        # M_t = np.multiply(q, M_t[:, :, np.newaxis]).sum(axis=2)
-        M_t = X @ np.linalg.inv(S_xx + data['alphas'][iteration] * np.identity(N)) @ X.T
-        # size = min(N, T)
-        # lamb = lambda_sq[:size]
-        # q = lamb / (lamb + data['alphas'][iteration])
-        # q = q.reshape((size, 1)).T
-        # psi_M = psi_svd @ np.linalg.inv(psi_svd.T @ psi_svd) @ psi_svd.T
-        # psi_M = (psi_svd @ psi_svd.T) * (1 / T)
-        # M_t = np.multiply(q, psi_M[:, :, np.newaxis]).sum(axis=2)
-        # M_t = np.zeros((T, T))
-        # for i in range(min(N, T)):
-        # 	psi_j = psi_svd[:, i].reshape((T, 1))
-        # 	M_t += (lambda_sq[i] / (lambda_sq[i]) + data['alphas'][iteration]) * (psi_j @ psi_j.T)
+    	I = np.identity(X.shape[1])
+        M_t = X @ np.linalg.inv(S_xx + data['alphas'][iteration] * I) @ X.T * (1 / T)
+        M_ty = M_t @ y
 
     elif model == 'LF':
         alpha = data['alphas'][iteration]
@@ -64,12 +53,15 @@ def get_model_output(data, model, iteration):
         q = (q / lambda_sq).reshape(1, q.shape[0])
         M_t = psi_svd @ psi_svd.T
         M_t = X @ X.T @ np.multiply(q, M_t[:, :, np.newaxis]).sum(axis=2)
+        M_ty = M_t @ y
 
     elif model == 'PLS':
+    	X = X[:, :data['k'][iteration]]
         V_k = np.tile(X.T @ y, (1, data['k'][iteration]))
         for i in range(1, data['k'][iteration]):
             V_k[:, i] = np.linalg.matrix_power(X.T @ X, i) @ V_k[:, i]
         M_t = X @ V_k @ np.linalg.inv(V_k.T @ X.T @ X @ V_k) @ V_k.T @ X.T
+        M_ty = M_t @ y
 
     elif model == 'BaiNg':
         lamb2, psi2 = np.linalg.eig((X @ X.T) / T)
@@ -85,7 +77,7 @@ def get_model_output(data, model, iteration):
         return (data)
 
     data['M_t'] = M_t
-    data['M_ty'] = M_t @ y
+    data['M_ty'] = M_ty
 
     return(data)
 
@@ -108,7 +100,7 @@ def cv(data, model, method, iteration):
     N = data['X'].shape[1]
 
     trM_t = np.trace(M_t)
-    error_norm = np.sum(np.power(errors, 2))
+    error_norm = np.power(np.linalg.norm(errors), 2)
     # sigma_e = (1/(N - r)) * (errors.T @ errors)
 
     sigma_e = np.var(errors)
@@ -152,12 +144,12 @@ def monte_carlo(monte_params):
 
     sim_params = {
         'r': [4, 50, 5, 5, N, 1],
-        'r_max': [14, min(N, (T / 2)), min(15, min(N, (T / 2))), 15, min(N, (T / 2)), 11]
+        'r_max': [14, np.ceil(min(N, (T / 2))), np.ceil(min(15, min(N, (T / 2)))), 15, np.ceil(min(N, (T / 2))), 11]
     }
     r_max = int(sim_params['r_max'][DGP - 1])
 
     crit_dict = {'k':
-                     {'PC': [list(range(0, (r_max + 1)))] * 6,
+                     {'PC': [list(range(1, (r_max + 1)))] * 6,
                       'PLS': [list(range(0, (r_max + 1)))] * 6,
                       'BaiNg': [list(range(0, (r_max + 1)))] * 6},
                  'alphas':
@@ -204,10 +196,10 @@ def monte_carlo(monte_params):
 monte_params = {
     'N': 100,
     'T': 50,
-    'sims': 100,
+    'sims': 10,
     'DGP': 2,
-    'model': 'PLS',
-    'eval': 'LOO_CV'
+    'model': 'PC',
+    'eval': 'GCV'
 }
 
 best = monte_carlo(monte_params)
