@@ -191,12 +191,12 @@ def monte_carlo(monte_params):
 
         print("-" * len(header))
         print("|" + str(sim + 1) + " " * (cols[0] - len(str(sim + 1)) - 1) + "|" +
-              '{0:.2f}'.format(curr_best) + " " * (cols[1] - len('{0:.2f}'.format(curr_best))) + "|" +
-              '{0:.2f}'.format(np.mean(best)) + " " * (cols[2] - len('{0:.2f}'.format(np.mean(best)))) + "|" +
-              '{0:.2f}'.format(np.std(best)) + " " * (cols[3] - len('{0:.2f}'.format(np.std(best))) - 1) + "|")
+              '{0:.2f}'.format(curr_crit) + " " * (cols[1] - len('{0:.2f}'.format(curr_crit))) + "|" +
+              '{0:.2f}'.format(np.mean(best_param)) + " " * (cols[2] - len('{0:.2f}'.format(np.mean(best_param)))) + "|" +
+              '{0:.2f}'.format(np.std(best_param)) + " " * (cols[3] - len('{0:.2f}'.format(np.std(best_param))) - 1) + "|")
     print("-" * len(header))
 
-    return(best)
+    return(best_param, best_MSE)
 
 
 monte_params = {
