@@ -128,6 +128,7 @@ def cv(data, model, method, iteration):
         crit = (1 / T) * np.sum(np.power(errors / (1 - np.diag(M_t)), 2))
 
     data['criteria'][iteration] = crit
+    data['MSE'][iteration] = error_norm / len(errors)
 
     return (data)
 
@@ -137,7 +138,8 @@ def monte_carlo(monte_params):
     T = monte_params['T']
     sims = monte_params['sims']
     DGP = monte_params['DGP']
-    best = []
+    best_param = []
+    best_MSE = []
     model = monte_params['model']
     eval_form = monte_params['eval']
     crit_var = ['alphas', 'k'][model in ['PC', 'PLS', 'BaiNg']]
@@ -175,13 +177,17 @@ def monte_carlo(monte_params):
         sim_data = gen_sim(sim_params, 'DGP' + str(DGP), N, T)
         sim_data[crit_var] = crit_dict[crit_var][model][DGP - 1]
         sim_data['criteria'] = np.ones(len(sim_data[crit_var]))
+        sim_data['MSE'] = np.ones(len(sim_data[crit_var]))
 
         for i in range(len(sim_data[crit_var])):
             sim_data = cv(sim_data, model, eval_form, i)
 
-        best_dict = dict(zip(sim_data[crit_var], sim_data['criteria']))
-        curr_best = min(best_dict.items(), key=operator.itemgetter(1))[0]
-        best.append(curr_best)
+        crit_dict = dict(zip(sim_data[crit_var], sim_data['criteria']))
+        MSE_dict = dict(zip(sim_data[crit_var], sim_data['MSE']))
+        curr_crit = min(crit_dict.items(), key=operator.itemgetter(1))[0]
+        curr_MSE = min(MSE_dict.items(), key=operator.itemgetter(1))[0]
+        best_param.append(curr_crit)
+        best_MSE.append(curr_MSE)
 
         print("-" * len(header))
         print("|" + str(sim + 1) + " " * (cols[0] - len(str(sim + 1)) - 1) + "|" +
