@@ -56,7 +56,7 @@ def get_model_output(data, model, iteration):
         M_ty = M_t @ y
 
     elif model == 'PLS':
-    	X = X[:, :data['k'][iteration]]
+    	# X = X[:, :data['k'][iteration]]
         V_k = np.tile(X.T @ y, (1, data['k'][iteration]))
         for i in range(1, data['k'][iteration]):
             V_k[:, i] = np.linalg.matrix_power(X.T @ X, i) @ V_k[:, i]
@@ -182,9 +182,9 @@ def monte_carlo(monte_params):
         for i in range(len(sim_data[crit_var])):
             sim_data = cv(sim_data, model, eval_form, i)
 
-        crit_dict = dict(zip(sim_data[crit_var], sim_data['criteria']))
+        param_dict = dict(zip(sim_data[crit_var], sim_data['criteria']))
         MSE_dict = dict(zip(sim_data[crit_var], sim_data['MSE']))
-        curr_crit = min(crit_dict.items(), key=operator.itemgetter(1))[0]
+        curr_crit = min(param_dict.items(), key=operator.itemgetter(1))[0]
         curr_MSE = min(MSE_dict.items(), key=operator.itemgetter(1))[0]
         best_param.append(curr_crit)
         best_MSE.append(curr_MSE)
@@ -195,6 +195,7 @@ def monte_carlo(monte_params):
               '{0:.2f}'.format(np.mean(best_param)) + " " * (cols[2] - len('{0:.2f}'.format(np.mean(best_param)))) + "|" +
               '{0:.2f}'.format(np.std(best_param)) + " " * (cols[3] - len('{0:.2f}'.format(np.std(best_param))) - 1) + "|")
     print("-" * len(header))
+    
 
     return(best_param, best_MSE)
 
@@ -203,12 +204,12 @@ monte_params = {
     'N': 100,
     'T': 50,
     'sims': 10,
-    'DGP': 2,
+    'DGP': 1,
     'model': 'PC',
     'eval': 'GCV'
 }
 
-best = monte_carlo(monte_params)
+best_param, best_MSE = monte_carlo(monte_params)
 
 sizes = ['500x200', '100x50']
 models = ['PC', 'PLS', 'Ridge', 'LF', 'BaiNg']
