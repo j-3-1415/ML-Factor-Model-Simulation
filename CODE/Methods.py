@@ -1,5 +1,5 @@
-# from CODE.DataSim import *
-from DataSim import *
+from CODE.DataSim import *
+# from DataSim import *
 import operator
 import pandas as pd
 
@@ -185,7 +185,7 @@ def monte_carlo(monte_params):
         param_dict = dict(zip(sim_data[crit_var], sim_data['criteria']))
         MSE_dict = dict(zip(sim_data[crit_var], sim_data['MSE']))
         curr_crit = min(param_dict.items(), key=operator.itemgetter(1))[0]
-        curr_MSE = min(MSE_dict.items(), key=operator.itemgetter(1))[0]
+        curr_MSE = min(MSE_dict.values())
         best_param.append(curr_crit)
         best_MSE.append(curr_MSE)
 
