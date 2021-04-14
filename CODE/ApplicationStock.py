@@ -2,6 +2,7 @@ from CODE.Methods import *
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
+import wrds
 
 
 # ugly path because we have no dedicated data storage for now
@@ -16,6 +17,17 @@ df = df[df['DATE'] > 20150101]
 
 sampled_firms = np.random.choice(df["permno"].unique(), 1000)
 df_sampled = df.query('permno in @sampled_firms')
+
+# add returns data
+db = wrds.Connection()
+db.list_tables(library='crsp')
+
+db.describe_table(library='crsp', table='crsp_daily_data')
+
+df_prc = db.get_table(library='crsp', table='monthly_returns')
+
+db.close()
+
 
 # check NAs
 sns.heatmap(df_sampled.isnull(), cbar=False)

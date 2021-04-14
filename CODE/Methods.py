@@ -40,11 +40,13 @@ def get_model_output(data, model, iteration):
         psi_svd = psi_svd[:, :data['k'][iteration]]
         M_t = psi_svd @ np.linalg.inv(psi_svd.T @ psi_svd) @ psi_svd.T
         M_ty = M_t @ y
+        delta = np.linalg.inv(psi_svd.T @ psi_svd) @ psi_svd.T @ y
 
     elif model == 'Ridge':
-    	I = np.identity(X.shape[1])
+        I = np.identity(X.shape[1])
         M_t = X @ np.linalg.inv(S_xx + data['alphas'][iteration] * I) @ X.T * (1 / T)
         M_ty = M_t @ y
+        delta = np.linalg.inv(S_xx + data['alphas'][iteration] * I) @ S_xy
 
     elif model == 'LF':
         alpha = data['alphas'][iteration]
@@ -54,14 +56,16 @@ def get_model_output(data, model, iteration):
         M_t = psi_svd @ psi_svd.T
         M_t = X @ X.T @ np.multiply(q, M_t[:, :, np.newaxis]).sum(axis=2)
         M_ty = M_t @ y
+        delta = X.T @ np.multiply(q, M_t[:, :, np.newaxis]).sum(axis=2) @ y
 
     elif model == 'PLS':
-    	# X = X[:, :data['k'][iteration]]
+        # X = X[:, :data['k'][iteration]]
         V_k = np.tile(X.T @ y, (1, data['k'][iteration]))
         for i in range(1, data['k'][iteration]):
             V_k[:, i] = np.linalg.matrix_power(X.T @ X, i) @ V_k[:, i]
         M_t = X @ V_k @ np.linalg.inv(V_k.T @ X.T @ X @ V_k) @ V_k.T @ X.T
         M_ty = M_t @ y
+        delta = V_k @ np.linalg.inv(V_k.T @ X.T @ X @ V_k) @ V_k.T @ y
 
     elif model == 'BaiNg':
         lamb2, psi2 = np.linalg.eig((X @ X.T) / T)
@@ -78,6 +82,7 @@ def get_model_output(data, model, iteration):
 
     data['M_t'] = M_t
     data['M_ty'] = M_ty
+    data['delta'] = delta
 
     return(data)
 
@@ -203,8 +208,8 @@ def monte_carlo(monte_params):
 monte_params = {
     'N': 100,
     'T': 50,
-    'sims': 10,
-    'DGP': 1,
+    'sims': 100,
+    'DGP': 4,
     'model': 'PC',
     'eval': 'GCV'
 }
