@@ -34,13 +34,15 @@ def plot_MSE(N, T, sims, DGP):
     MSE_df = pd.DataFrame(MSEs)
     sns.scatterplot(data=MSE_df, x='Method', y='MSE', marker="D", s=50)
     for i in range(len(MSE_df['Method'])):
-        plt.annotate(round(MSE_df['MSE'][i], 3), (MSE_df['Method'][i], MSE_df['MSE'][i] + 0.05),
+        plt.annotate(round(MSE_df['MSE'][i], 3), (MSE_df['Method'][i], MSE_df['MSE'][i] + 0.0005),
                      ha='center')
     # plt.xlim((0, len(MSE_df['Method']) + 0.5))
-    plt.ylim((-0.05, max(MSE_df['MSE'] + 0.1)))
+    plt.ylim((-0.0005, max(MSE_df['MSE'] + 0.001)))
     plt.savefig(outpath + 'N' + str(N) + '_T' + str(T) + '_DGP' + str(DGP) + '_Sims' + str(sims) + '.png')
     plt.close()
 
 
 for i in range(6):
     plot_MSE(100, 50, 100, i+1)
+
+plot_MSE(100, 50, 10, 3)

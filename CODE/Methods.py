@@ -41,11 +41,13 @@ def get_model_output(data, model, iteration):
         psi_svd = psi_svd[:, :data['k'][iteration]]
         M_t = psi_svd @ np.linalg.inv(psi_svd.T @ psi_svd) @ psi_svd.T
         M_ty = M_t @ y
+        delta = np.linalg.inv(psi_svd.T @ psi_svd) @ psi_svd.T @ y
 
     elif model == 'Ridge':
-    	I = np.identity(X.shape[1])
+        I = np.identity(X.shape[1])
         M_t = X @ np.linalg.inv(S_xx + data['alphas'][iteration] * I) @ X.T * (1 / T)
         M_ty = M_t @ y
+        delta = np.linalg.inv(S_xx + data['alphas'][iteration] * I) @ S_xy
 
     elif model == 'LF':
         alpha = data['alphas'][iteration]
@@ -55,14 +57,15 @@ def get_model_output(data, model, iteration):
         M_t = psi_svd @ psi_svd.T
         M_t = X @ X.T @ np.multiply(q, M_t[:, :, np.newaxis]).sum(axis=2)
         M_ty = M_t @ y
+        delta = X.T @ np.multiply(q, M_t[:, :, np.newaxis]).sum(axis=2) @ y
 
     elif model == 'PLS':
-    	X = X[:, :r_max]
         V_k = np.tile(X.T @ y, (1, data['k'][iteration]))
         for i in range(1, data['k'][iteration]):
             V_k[:, i] = X.T @ X @ V_k[:, i - 1]
         M_t = X @ V_k @ np.linalg.inv(V_k.T @ X.T @ X @ V_k) @ V_k.T @ X.T
         M_ty = M_t @ y
+        delta = V_k @ np.linalg.inv(V_k.T @ X.T @ X @ V_k) @ V_k.T @ y
 
     elif model == 'BaiNg':
         F_tild = np.sqrt(T) * psi_svd[:, :data['k'][iteration]]
@@ -72,17 +75,18 @@ def get_model_output(data, model, iteration):
 
     data['M_t'] = M_t
     data['M_ty'] = M_ty
+    data['delta'] = delta
 
     return(data)
 
 def mallow_sig(data, model):
-	data = data.copy()
+    data = data.copy()
 
-	# r_max = int(data['r_max'])
+    # r_max = int(data['r_max'])
 
-	X = data['X']
-	y = data['y']
-	T = X.shape[0]
+    X = data['X']
+    y = data['y']
+    T = X.shape[0]
     N = X.shape[1]
 
     r_max = min(N, T)
@@ -110,7 +114,7 @@ def cv(data, model, method, iteration):
     e, sigma_e = mallow_sig(data, model)
 
     if model == 'BaiNg':
-    	V = (1 / (N * T)) * np.sum(np.power(data['X'] - data['M_t'], 2))
+        V = (1 / (N * T)) * np.sum(np.power(data['X'] - data['M_t'], 2))
         crit =  V + (sigma_e * data['k'][iteration] * ((N + T) / (N * T)) * np.log(min(N, T)))
         # crit = V * (1 + data['k'][iteration] * ((N + T) / (N * T)) * np.log(min(N, T)))
         data['criteria'][iteration] = crit
@@ -124,7 +128,7 @@ def cv(data, model, method, iteration):
     if model in ['PC', 'PLS']:
         r = data['k'][iteration]
     else:
-    	r = np.trace(M_t)
+        r = np.trace(M_t)
 
     trM_t = np.trace(M_t)
     error_norm = np.sum(np.power(errors, 2))
@@ -254,12 +258,12 @@ M = list(range(1, 201))
 k = list(range(1, 12))
 subsets = []
 for length in k:
-	for subset in combinations(M, length):
-		subsets.append(subset)
+    for subset in combinations(M, length):
+        subsets.append(subset)
 
 choose_sum = 0
 for i in k:
-	choose_sum += comb(M[-1], i)
+    choose_sum += comb(M[-1], i)
 
 
 
