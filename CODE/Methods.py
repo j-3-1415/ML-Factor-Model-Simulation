@@ -1,5 +1,5 @@
-from CODE.DataSim import *
-# from DataSim import *
+# from CODE.DataSim import *
+from DataSim import *
 import operator
 import pandas as pd
 
@@ -19,13 +19,14 @@ import pandas as pd
 def get_model_output(data, model, iteration):
     data = data.copy()
 
-    r_max = int(data['r_max'])
+    # r_max = int(data['r_max'])
 
     X = data['X']
     # X = X[:, :r_max]
     y = data['y']
     T = X.shape[0]
     N = X.shape[1]
+    r_max = min(N, T)
 
     S_xx = (X.T @ X) / T
     S_xy = (X.T @ y) / T
@@ -56,54 +57,77 @@ def get_model_output(data, model, iteration):
         M_ty = M_t @ y
 
     elif model == 'PLS':
-    	# X = X[:, :data['k'][iteration]]
+    	X = X[:, :r_max]
         V_k = np.tile(X.T @ y, (1, data['k'][iteration]))
         for i in range(1, data['k'][iteration]):
-            V_k[:, i] = np.linalg.matrix_power(X.T @ X, i) @ V_k[:, i]
+            V_k[:, i] = X.T @ X @ V_k[:, i - 1]
         M_t = X @ V_k @ np.linalg.inv(V_k.T @ X.T @ X @ V_k) @ V_k.T @ X.T
         M_ty = M_t @ y
 
     elif model == 'BaiNg':
-        lamb2, psi2 = np.linalg.eig((X @ X.T) / T)
-        F = np.sqrt(T) * psi2[:, :data['k'][iteration]]
-        lamb = (1 / T) * (F.T @ X)
-        V = 0
-        for i in range(N):
-            for t in range(T):
-                V += np.power(X[t, i] - (lamb[:, i] @ F[t, :]), 2)
-        V = (1 / (N * T)) * V
-        PC = V * (1 + (data['k'][iteration] * (N + T) * np.log((N * T) / (N + T))))
-        data['criteria'][iteration] = PC
-        return (data)
+        F_tild = np.sqrt(T) * psi_svd[:, :data['k'][iteration]]
+        lambda_tild = np.linalg.inv(F_tild.T @ F_tild) @ (F_tild.T @ X)
+        M_t = F_tild @ lambda_tild
+        M_ty = None
 
     data['M_t'] = M_t
     data['M_ty'] = M_ty
 
     return(data)
 
+def mallow_sig(data, model):
+	data = data.copy()
+
+	# r_max = int(data['r_max'])
+
+	X = data['X']
+	y = data['y']
+	T = X.shape[0]
+    N = X.shape[1]
+
+    r_max = min(N, T)
+
+    psi, sigma, phi_T_svd = np.linalg.svd(X)
+    psi, sigma, phi_T_svd = psi.real, sigma.real, phi_T_svd.real
+
+    F_tild = np.sqrt(T) * psi[:, :r_max]
+    lambda_tild = np.linalg.inv(F_tild.T @ F_tild) @ (F_tild.T @ X)
+
+    e = X - (F_tild @ lambda_tild)
+    sigma_e = (1 / (N * T)) * np.sum(np.power(e, 2))
+
+    return(e, sigma_e)
+
 
 def cv(data, model, method, iteration):
     data = data.copy()
 
     data = get_model_output(data, model, iteration)
+
+    y = data['y']
+    N = data['X'].shape[1]
+    T = y.shape[0]
+    e, sigma_e = mallow_sig(data, model)
+
     if model == 'BaiNg':
-        return (data)
+    	V = (1 / (N * T)) * np.sum(np.power(data['X'] - data['M_t'], 2))
+        crit =  V + (sigma_e * data['k'][iteration] * ((N + T) / (N * T)) * np.log(min(N, T)))
+        # crit = V * (1 + data['k'][iteration] * ((N + T) / (N * T)) * np.log(min(N, T)))
+        data['criteria'][iteration] = crit
+        data['MSE'][iteration] = None
+        return(data)
+
     M_t = data['M_t']
     M_ty = data['M_ty']
-    y = data['y']
     errors = y - M_ty
 
     if model in ['PC', 'PLS']:
         r = data['k'][iteration]
-
-    T = y.shape[0]
-    N = data['X'].shape[1]
+    else:
+    	r = np.trace(M_t)
 
     trM_t = np.trace(M_t)
-    error_norm = np.power(np.linalg.norm(errors), 2)
-    # sigma_e = (1/(N - r)) * (errors.T @ errors)
-
-    sigma_e = np.var(errors)
+    error_norm = np.sum(np.power(errors, 2))
 
     if method == 'GCV':
 
@@ -112,7 +136,6 @@ def cv(data, model, method, iteration):
         crit = numer / denom
 
     elif method == 'Mallow':
-
         crit = ((1 / T) * error_norm) + (2 * sigma_e * (1 / T) * trM_t)
 
     elif method == 'AIC':
@@ -124,7 +147,6 @@ def cv(data, model, method, iteration):
         crit = 1 * ((T * r) - (2 * np.log(error_norm)))
 
     elif method == 'LOO_CV':
-        diag = 1 - np.diag(M_t)
         crit = (1 / T) * np.sum(np.power(errors / (1 - np.diag(M_t)), 2))
 
     data['criteria'][iteration] = crit
@@ -146,14 +168,15 @@ def monte_carlo(monte_params):
 
     sim_params = {
         'r': [4, 50, 5, 5, N, 1],
-        'r_max': [14, np.ceil(min(N, (T / 2))), np.ceil(min(15, min(N, (T / 2)))), 15, np.ceil(min(N, (T / 2))), 11]
+        'r_max': [14, np.floor(min(N, (T / 2))), np.floor(min(15, min(N, (T / 2)))), 15, np.floor(min(N, (T / 2))), 11]
     }
     r_max = int(sim_params['r_max'][DGP - 1])
+    # r_max = min(N, T)
 
     crit_dict = {'k':
-                     {'PC': [list(range(1, (r_max + 1)))] * 6,
-                      'PLS': [list(range(0, (r_max + 1)))] * 6,
-                      'BaiNg': [list(range(0, (r_max + 1)))] * 6},
+                     {'PC': [list(range(0, (r_max)))] * 6,
+                      'PLS': [list(range(0, (r_max)))] * 6,
+                      'BaiNg': [list(range(0, (r_max)))] * 6},
                  'alphas':
                      {'Ridge': [N * np.arange(0, 0.1, 0.001),
                                 N * np.arange(0, 0.01, 0.0001),
@@ -203,10 +226,10 @@ def monte_carlo(monte_params):
 monte_params = {
     'N': 100,
     'T': 50,
-    'sims': 10,
-    'DGP': 1,
+    'sims': 50,
+    'DGP': 2,
     'model': 'PC',
-    'eval': 'GCV'
+    'eval': 'Mallow'
 }
 
 best_param, best_MSE = monte_carlo(monte_params)
@@ -222,3 +245,22 @@ check = check[~((check['Model'] != 'PLS') & (check['Eval'] == 'LOO_CV'))].reset_
 check.loc[check['Model'] == 'BaiNg', 'Eval'] = 'BaiNg'
 check = check[~check.duplicated()].reset_index().drop('index', axis=1)
 check[(check['Model'] == 'PC') & (check['Eval'] == 'GCV')][['DGP1', 'DGP3', 'DGP4']]
+
+
+from itertools import combinations
+from scipy.special import comb
+
+M = list(range(1, 201))
+k = list(range(1, 12))
+subsets = []
+for length in k:
+	for subset in combinations(M, length):
+		subsets.append(subset)
+
+choose_sum = 0
+for i in k:
+	choose_sum += comb(M[-1], i)
+
+
+
+
