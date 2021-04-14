@@ -1,5 +1,5 @@
-# from CODE.DataSim import *
-from DataSim import *
+from CODE.DataSim import *
+# from DataSim import *
 import operator
 import pandas as pd
 
@@ -45,18 +45,18 @@ def get_model_output(data, model, iteration):
         delta = np.linalg.inv(psi_svd.T @ psi_svd) @ psi_svd.T @ y
 
     elif model == 'Ridge':
-		I = np.identity(X.shape[1])
-		M_t = X @ np.linalg.inv(S_xx + data['alphas'][iteration] * I) @ X.T * (1 / T)
-		M_ty = M_t @ y
-		delta = np.linalg.inv(S_xx + data['alphas'][iteration] * I) @ S_xy
-		# alpha = data['alphas'][iteration]
-		  #       M_t = np.zeros((T, T))
-		  #       for i in range(0, min(N, T)):
-		  #       	q = lambda_sq[i] / (lambda_sq[i] + alpha)
-		  #       	M_t += q * (psi_svd[:, i] @ psi_svd[:, i].T)
-		  #       M_t = M_t / T
-		  #       M_ty = M_t @ y
-		  #       delta = None
+        I = np.identity(X.shape[1])
+        M_t = X @ np.linalg.inv(S_xx + data['alphas'][iteration] * I) @ X.T * (1 / T)
+        M_ty = M_t @ y
+        delta = np.linalg.inv(S_xx + data['alphas'][iteration] * I) @ S_xy
+        # alpha = data['alphas'][iteration]
+          #       M_t = np.zeros((T, T))
+          #       for i in range(0, min(N, T)):
+          #       	q = lambda_sq[i] / (lambda_sq[i] + alpha)
+          #       	M_t += q * (psi_svd[:, i] @ psi_svd[:, i].T)
+          #       M_t = M_t / T
+          #       M_ty = M_t @ y
+          #       delta = None
 
     elif model == 'LF':
         alpha = data['alphas'][iteration]
@@ -65,8 +65,8 @@ def get_model_output(data, model, iteration):
         # q = (q / lambda_sq).reshape(1, q.shape[0])
         M_t = np.zeros((T, T))
         for i in range(0, min(N, T)):
-        	q = 1 - np.power((1 - d * lambda_sq[i]), (1 / alpha))
-        	M_t += q * (psi_svd[:, i] @ psi_svd[:, i].T)
+            q = 1 - np.power((1 - d * lambda_sq[i]), (1 / alpha))
+            M_t += q * (psi_svd[:, i] @ psi_svd[:, i].T)
         M_t = M_t / T
         # M_t = psi_svd @ psi_svd.T
         # M_t = X @ X.T @ np.multiply(q, M_t[:, :, np.newaxis]).sum(axis=2)
@@ -80,7 +80,7 @@ def get_model_output(data, model, iteration):
             V_k[:, i] = X.T @ X @ V_k[:, i - 1]
         M_t = X @ V_k @ np.linalg.inv(V_k.T @ X.T @ X @ V_k) @ V_k.T @ X.T
         M_ty = M_t @ y
-        delta = V_k @ np.linalg.inv(V_k.T @ X.T @ X @ V_k) @ V_k.T @ y
+        delta = V_k @ np.linalg.inv(V_k.T @ X.T @ X @ V_k) @ V_k.T @ X.T @ y
 
     elif model == 'BaiNg':
         F_tild = np.sqrt(T) * psi_svd[:, :data['k'][iteration]]
