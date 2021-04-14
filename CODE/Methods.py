@@ -30,6 +30,7 @@ def get_model_output(data, model, iteration):
 
     S_xx = (X.T @ X) / T
     S_xy = (X.T @ y) / T
+    
 
     psi_svd, sigma, phi_T_svd = np.linalg.svd((X @ X.T) / T)
     psi_svd, sigma, phi_T_svd = psi_svd.real, sigma.real, phi_T_svd.real
