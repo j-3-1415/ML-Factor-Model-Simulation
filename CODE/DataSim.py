@@ -38,7 +38,7 @@ def gen_sim(sim_params, dgp, N, T):
 
 	sim_output = {'y' : F @ theta + nu, 'X' : F @ Lambda + xi}
 
-	if dgp in ['DGP3', 'DGP4']:
+	if dgp in ['DGP3']:
 		X = sim_output['X']
 		T = F.shape[0]
 		k = F.shape[1]
