@@ -19,19 +19,19 @@ import pandas as pd
 def get_model_output(data, model, iteration):
     data = data.copy()
 
-    # r_max = int(data['r_max'])
+    r_max = int(data['r_max'])
 
     X = data['X']
     # X = X[:, :r_max]
     y = data['y']
     T = X.shape[0]
     N = X.shape[1]
-    r_max = min(N, T)
+    # r_max = min(N, T)
 
     S_xx = (X.T @ X) / T
     S_xy = (X.T @ y) / T
 
-    psi_svd, sigma, phi_T_svd = np.linalg.svd(X)
+    psi_svd, sigma, phi_T_svd = np.linalg.svd((X @ X.T) / T)
     psi_svd, sigma, phi_T_svd = psi_svd.real, sigma.real, phi_T_svd.real
 
     lambda_sq, psi = np.linalg.eig(S_xx)
@@ -44,20 +44,34 @@ def get_model_output(data, model, iteration):
         delta = np.linalg.inv(psi_svd.T @ psi_svd) @ psi_svd.T @ y
 
     elif model == 'Ridge':
-        I = np.identity(X.shape[1])
-        M_t = X @ np.linalg.inv(S_xx + data['alphas'][iteration] * I) @ X.T * (1 / T)
-        M_ty = M_t @ y
-        delta = np.linalg.inv(S_xx + data['alphas'][iteration] * I) @ S_xy
+		I = np.identity(X.shape[1])
+		M_t = X @ np.linalg.inv(S_xx + data['alphas'][iteration] * I) @ X.T * (1 / T)
+		M_ty = M_t @ y
+		delta = np.linalg.inv(S_xx + data['alphas'][iteration] * I) @ S_xy
+		# alpha = data['alphas'][iteration]
+		  #       M_t = np.zeros((T, T))
+		  #       for i in range(0, min(N, T)):
+		  #       	q = lambda_sq[i] / (lambda_sq[i] + alpha)
+		  #       	M_t += q * (psi_svd[:, i] @ psi_svd[:, i].T)
+		  #       M_t = M_t / T
+		  #       M_ty = M_t @ y
+		  #       delta = None
 
     elif model == 'LF':
         alpha = data['alphas'][iteration]
         d = 0.018 / np.amax(lambda_sq)  # as defined on page 327
-        q = 1 - np.power((1 - d * lambda_sq), (1 / alpha))
-        q = (q / lambda_sq).reshape(1, q.shape[0])
-        M_t = psi_svd @ psi_svd.T
-        M_t = X @ X.T @ np.multiply(q, M_t[:, :, np.newaxis]).sum(axis=2)
+        # q = 1 - np.power((1 - d * lambda_sq), (1 / alpha))
+        # q = (q / lambda_sq).reshape(1, q.shape[0])
+        M_t = np.zeros((T, T))
+        for i in range(0, min(N, T)):
+        	q = 1 - np.power((1 - d * lambda_sq[i]), (1 / alpha))
+        	M_t += q * (psi_svd[:, i] @ psi_svd[:, i].T)
+        M_t = M_t / T
+        # M_t = psi_svd @ psi_svd.T
+        # M_t = X @ X.T @ np.multiply(q, M_t[:, :, np.newaxis]).sum(axis=2)
         M_ty = M_t @ y
-        delta = X.T @ np.multiply(q, M_t[:, :, np.newaxis]).sum(axis=2) @ y
+        # delta = X.T @ np.multiply(q, M_t[:, :, np.newaxis]).sum(axis=2) @ y
+        delta = None
 
     elif model == 'PLS':
         V_k = np.tile(X.T @ y, (1, data['k'][iteration]))
@@ -178,7 +192,7 @@ def monte_carlo(monte_params):
     # r_max = min(N, T)
 
     crit_dict = {'k':
-                     {'PC': [list(range(0, (r_max)))] * 6,
+                     {'PC': [list(range(0, (r_max + 1)))] * 6,
                       'PLS': [list(range(0, (r_max)))] * 6,
                       'BaiNg': [list(range(0, (r_max)))] * 6},
                  'alphas':
@@ -208,6 +222,7 @@ def monte_carlo(monte_params):
 
         for i in range(len(sim_data[crit_var])):
             sim_data = cv(sim_data, model, eval_form, i)
+            # return(sim_data)
 
         param_dict = dict(zip(sim_data[crit_var], sim_data['criteria']))
         MSE_dict = dict(zip(sim_data[crit_var], sim_data['MSE']))
@@ -230,11 +245,13 @@ def monte_carlo(monte_params):
 monte_params = {
     'N': 100,
     'T': 50,
-    'sims': 50,
-    'DGP': 2,
-    'model': 'PC',
-    'eval': 'Mallow'
+    'sims': 20,
+    'DGP': 1,
+    'model': 'Ridge',
+    'eval': 'GCV'
 }
+
+# test = monte_carlo(monte_params)
 
 best_param, best_MSE = monte_carlo(monte_params)
 
