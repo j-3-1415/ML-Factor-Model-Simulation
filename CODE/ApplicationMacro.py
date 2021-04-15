@@ -4,26 +4,6 @@ from FredMD import FredMD
 from sklearn.preprocessing import StandardScaler
 
 
-fmd = FredMD(Nfactor=None, vintage=None, maxfactor=8, standard_method=2, ic_method=2)
-df = fmd.download_data(None)[0]
-
-# BaiNg factor estimation
-fmd.estimate_factors()
-f = fmd.factors
-# from bai ng we get 7 factors
-
-# # variables of interest: Industrial Production (INDPRO), Unemployment Rate (UNRATE), CPI (INF) following
-# # Coulombe et al.
-
-
-params = {
-    'model': 'PC',
-    'eval_form': 'GCV',
-    'r_max': 100,
-    'target': 'INDPRO',
-    'horizon': 1,
-    'train_size': 0.5}
-
 def get_best_model(data, model, eval_form, r_max):
     data = data.copy()
 
@@ -44,6 +24,7 @@ def get_best_model(data, model, eval_form, r_max):
 
     data['criteria'] = np.ones(len(data[crit_var]))
     data['MSE'] = np.ones(len(data[crit_var]))
+    data['DOF'] = np.ones(len(data[crit_var]))
 
     for i in range(len(data[crit_var])):
         data = cv(data, model, eval_form, i)
@@ -58,24 +39,34 @@ def get_best_model(data, model, eval_form, r_max):
 
 
 # putting everything together
-def apply_model(target, horizon, train_size, model, eval_form, r_max, df):
+def apply_model(target, horizon, train_size, model, eval_form, r_max, fmd):
 
-    df['y'] = df[target].shift(+horizon)
+    # fmd.apply_transforms()
+    # fmd.factor_standardizer_method(code=2)
+    df = fmd.rawseries
+
+    df['y'] = fmd.rawseries[target]# .tail(-2) # in clean data we drop first two obs
 
     # because of many columns with missing NAs remove columns where more than 1% are missing
     df = df[df.columns[df.isnull().mean() < 0.01]].dropna(axis=0)
     # like this we only drop 3 observations
 
-    train = df.head(int(len(df)*train_size))
-    test = df.tail(len(df) - len(train))
-
-    # standardize data
     scale = StandardScaler()
-    X_train = scale.fit_transform(train[train.columns[~train.columns.isin([target])]])
-    X_test = scale.fit_transform(test[test.columns[~test.columns.isin([target])]])
 
-    Y_train = scale.fit_transform(train[train.columns[train.columns.isin(['y'])]])
-    Y_test= scale.fit_transform(test[test.columns[test.columns.isin(['y'])]])
+    train = df.head(int(len(df)*train_size))
+    X_train = train[train.columns[~train.columns.isin([target, 'y'])]].tail(-horizon)
+    X_train = scale.fit_transform(X_train)
+
+    Y_train = df['y'].head(int(len(df['y'])*train_size))
+    Y_train = (1 / horizon) * np.log(Y_train.shift(+horizon).dropna(axis=0) / Y_train.tail(-horizon)).to_numpy()
+
+
+    test = df.tail(len(df) - len(train))
+    X_test = test[test.columns[~test.columns.isin([target, 'y'])]].tail(-horizon)
+    X_test = scale.fit_transform(X_test)
+
+    Y_test = df['y'].head(len(df) - len(train))
+    Y_test = (1 / horizon) * np.log(Y_test.shift(+horizon).dropna(axis=0) / Y_test.tail(-horizon)).to_numpy()
 
 
     arrays = [Y_train, X_train]
@@ -105,7 +96,29 @@ def apply_model(target, horizon, train_size, model, eval_form, r_max, df):
     return par, MSE, MSE_oos
 
 
-par, MSE_is, MSE_oos = apply_model(**params, df=df)
+
+
+
+# # variables of interest: Industrial Production (INDPRO), Unemployment Rate (UNRATE), CPI (INF) following
+# # Coulombe et al.
+
+fmd = FredMD(Nfactor=None, vintage=None, maxfactor=8, standard_method=2, ic_method=2)
+
+params = {
+    'model': 'Ridge',
+    'eval_form': 'Mallow',
+    'r_max': 10,
+    'target': 'INDPRO',
+    'horizon': 4,
+    'train_size': 0.8}
+
+par, MSE_is, MSE_oos = apply_model(**params, fmd=fmd)
+
+# BaiNg factor estimation
+fmd.estimate_factors()
+f = fmd.factors
+# from bai ng we get 7 factors
+
 
 # problem: PC just returns r_max as optimal number of factors
 # PLS returned 5 but now not working because we need to fix delta
@@ -132,3 +145,9 @@ par, MSE_is, MSE_oos = apply_model(**params, df=df)
 # data = {k: v for k, v in zip(keys, arrays)}
 
 # par, MSE, mat = get_best_model(data, params)
+
+y = fmd.rawseries[target].tail(-2) # in cleaned data we drop first two obs
+og = y.tail(-horizon)
+shifted = y.shift(+horizon).dropna(axis=0)
+y = (1/horizon) * np.log(shifted/og)
+
