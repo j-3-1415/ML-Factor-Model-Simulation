@@ -19,10 +19,10 @@ f = fmd.factors
 params = {
     'model': 'PC',
     'eval_form': 'GCV',
-    'r_max': 15,
+    'r_max': 100,
     'target': 'INDPRO',
     'horizon': 1,
-    'train_size': 0.8}
+    'train_size': 0.5}
 
 def get_best_model(data, model, eval_form, r_max):
     data = data.copy()
@@ -84,15 +84,20 @@ def apply_model(target, horizon, train_size, model, eval_form, r_max, df):
 
     par, MSE, mat = get_best_model(data_train, model, eval_form, r_max)
 
-    if params['model'] == 'Ridge':
+    if model == 'Ridge':
         pred_oos = X_test @ mat['delta']
 
-    elif params['model'] == 'PC':
-        psi_svd, sigma, phi_T_svd = np.linalg.svd(X_test)
+    elif model == 'PC':
+        T, N = X_test.shape
+        psi_svd, sigma, phi_T_svd = np.linalg.svd(X_test @ X_test.T / T)
         psi_svd, sigma, phi_T_svd = psi_svd.real, sigma.real, phi_T_svd.real
         psi_svd = psi_svd[:, :par]
 
         pred_oos = psi_svd @ mat['delta']
+
+    elif model == 'PLS':
+        pred_oos = X_test @ mat['delta']
+
 
     errors = Y_test - pred_oos
     MSE_oos = np.power(np.linalg.norm(errors), 2) / len(errors)
