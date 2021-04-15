@@ -53,11 +53,13 @@
 
 \newpage
 
+\section{Introduction}
+
 Four dimension reduction devices: (1) Principal Component Analysis, (2) Ridge Regression, (3) Landweber Fridman (LF) regularization, (4) Partial least squares. Each involves a regularization or tuning parameter that is selected through genearlized cross validation (GCV). 
 
 Take two different data generating processes, (1) The eigenvalues of $\frac{X^{'}X}{T}$ are bounded and decline to zero gradually. (2) Popular factor model with a finite number, r, of factors. Here, the r largest eigenvalues grow with N, while the remaining are bounded. In both cases, $\frac{X^{'}X}{T}$ is ill-conditioned, which means the ratio of the largest to smallest eigenvalue diverges, and a regularization terms is needed to invert the matrix.
 
-Data Generating Process:
+\section{Data Generating Process}
 
 Large Sample Case: $N = 200$ and $T = 500$
 Small Sample Case: $N = 100$ and $T = 50$
@@ -111,6 +113,58 @@ Simulation (Andy)
 Model Estimation (Jacob)
 Evaluation (Jacob)
 Output (Andy)
+
+\section{Estimation Methods}
+
+Ridge Estimator:
+
+\[\widehat{y} = M_{T}^{\alpha} y = X (S_{xx} + \alpha I)^{-1} S_{xy}\]
+
+LF Estimator:
+
+\[\widehat{y} = M_{T}^{\alpha} y = X \sum_{j=1}^{\min (N, T)} \frac{\left(1-\left(1-d \widehat{\lambda}_{j}^{2}\right)^{1 / \alpha}\right)}{\widehat{\lambda}_{j}^{2}}\left\langle y, \hat{\psi}_{j}\right\rangle_{T} \frac{X^{\prime} \hat{\psi}_{j}}{T}\]
+
+Spectral Cutoff/Principal Components Estimator:
+
+\[\widehat{y} = M_{T}^{\alpha} y = \widehat{\Psi} \left(\widehat{\Psi}^{\prime} \widehat{\Psi}\right)^{-1} \widehat{\Psi}^{\prime} y\]
+
+\[\text{ Where } \widehat{\Psi} = \left[\widehat{\psi}_{1}\left|\widehat{\psi}_{2}\right| \ldots \mid \widehat{\psi}_{k}\right]\]
+
+Partial Least Squares Estimator:
+
+\[\widehat{y} = M_{T}^{\alpha} y = X V_{k}\left(V_{k}^{\prime} X^{\prime} X V_{k}\right)^{-1} V_{k}^{\prime} X^{\prime} y\]
+
+\[\text{ Where } V_{k}=\left(X^{\prime} y, \quad\left(X^{\prime} X\right) X^{\prime} y, \ldots,\left(X^{\prime} X\right)^{k-1} X^{\prime} y\right)\]
+
+\subsection{Via SIMPLS Algorithm}
+
+\begin{align}
+\nonumber S = X^{T} y & \\
+\nonumber \text{for } & i \in 1:k \\
+\nonumber &\text{if } i = 1, [u, s, v] = svd(S) \\
+\nonumber &\text{if } i > 1, [u, s, v] = svd(S - (P_{k}[:, i-1](P_{k}[:, i-1]^{T} P_{k}[:, i-1])^{-1} P_{k}[:, i-1]^{T} S)) \\
+\nonumber &T_{k}[:, i - 1] = X R_{k}[:, i - 1] \\
+\nonumber &P_{k}[:, i - 1] = \frac{X^{T} T_{k}[:, i - 1]}{T_{k}[:, i - 1]^{T}T_{k}[:, i - 1]} \\
+\nonumber \widehat{y} = M^{\alpha}_{T} y &= X R_{k} (T^{T}_{k} T_{k})^{-1} T^{T}_{k} y
+\end{align}
+
+\section{Evaluation Methods}
+
+Generalized Cross Validation:
+
+\[\hat{\alpha}=\arg \min _{\alpha \in A_{T}} \frac{T^{-1}\left\|y-M_{T}^{\alpha} y\right\|^{2}}{\left(1-T^{-1} \operatorname{tr}\left(M_{T}^{\alpha}\right)\right)^{2}}\]
+
+Mallows Criterion:
+
+\[\hat{\alpha}=\arg \min _{\alpha \in A_{T}} T^{-1}\left\|y-M_{T}^{\alpha} y\right\|^{2}+2 \widehat{\sigma}_{\varepsilon}^{2} T^{-1} \operatorname{tr}\left(M_{T}^{\alpha}\right)\]
+
+\[\text{ Where } \widehat{\sigma}_{\epsilon}^{2} \text{ is a consistent estimator of the variance of } \epsilon\]
+
+So variance of $\epsilon$ is taken from the errors of the largest model, or from the model with all regressors for PC.
+
+Leave-one-out Cross Validation:
+
+\[\hat{\alpha}=\arg \min _{\alpha \in A_{T}} \frac{1}{T} \sum_{t=1}^{T}\left(\frac{y_{i}-\hat{y}_{i, \alpha}}{1-M_{T}^{\alpha}[ii]}\right)^{2}\]
 
 \clearpage
 
