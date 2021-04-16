@@ -170,6 +170,17 @@ Leave-one-out Cross Validation:
 
 \input{Test}
 
+\section{Empirical Application}
+We build on the long history of machine learning in forecasting macroeconomic variables\footnote{See e.g. ...} and use the Federal Reserve Bank's monthly database, which was established for empirical analysis that requires 'big data', hence constituting an ideal environment for the estimators discussed above. We took inspiration from the work of Coulombe et al. (2020) but limit ourselves to PC, Ridge, PLS and LF.\footnote{Unfortunately we were unable to use (1) Gu et al. (2020) as TSE does not have access to WDRS returns, (2) as only data on the resulting factors is available or (3) as they do not offer any replication data.} 
+The dataset contains 134 monthly US macroeconomic and financial indicators observed from January 1959 to January 2021. An overview of all variables is given in the appendix. 
+Following Coulombe et al. (2020) we predict three indicators which are of key economic interest, namely Industrial Production (INDPRO), Unemployment Rate (UNRATE), and the Consumer Price Index (INF). For each of these variables of interest $Y_t$ we define the forecast objective as
+
+\begin{align}
+	y_{t+h} = (1/h) ln(Y_{t+h}/Y_t)
+\end{align}
+
+
+
 \end{document}
 
 
