@@ -2,6 +2,11 @@ from CODE.Methods import *
 
 from FredMD import FredMD
 from sklearn.preprocessing import StandardScaler
+import seaborn as sns
+import matplotlib.pyplot as plt
+import os
+
+outpath = os.getcwd() + '/OUTPUT/'
 
 
 def get_best_model(data, model, eval_form, r_max):
@@ -13,7 +18,7 @@ def get_best_model(data, model, eval_form, r_max):
 
     crit_dict = {'k':
                      {'PC': list(range(1, (r_max + 1))),
-                      'PLS': list(range(0, (r_max + 1))),
+                      'PLS': list(range(1, (r_max + 1))),
                       'BaiNg': list(range(0, (r_max + 1)))},
                  'alphas':
                      {'Ridge': N * np.arange(0, 0.1, 0.001),
@@ -34,20 +39,29 @@ def get_best_model(data, model, eval_form, r_max):
     curr_par = min(param_dict.items(), key=operator.itemgetter(1))[0]
     curr_MSE = min(MSE_dict.values())
 
+    if model in ['Ridge', 'LF']:
+        data['alphas'] = [curr_par]
 
-    return (curr_par, curr_MSE, data)
+    elif model in ['PC', 'PLS']:
+        data['k'] = [curr_par]
+
+    mat = get_model_output(data, model, 0)
+    delta = mat['delta']
+
+
+    return (curr_par, curr_MSE, delta)
 
 
 # putting everything together
 def apply_model(target, horizon, train_size, model, eval_form, r_max, fmd):
 
-    # fmd.apply_transforms()
+    fmd.apply_transforms()
     # fmd.factor_standardizer_method(code=2)
     df = fmd.rawseries
 
     df['y'] = fmd.rawseries[target]# .tail(-2) # in clean data we drop first two obs
 
-    # because of many columns with missing NAs remove columns where more than 1% are missing
+    # because of many columns with NAs remove columns where more than 1% are missing
     df = df[df.columns[df.isnull().mean() < 0.01]].dropna(axis=0)
     # like this we only drop 3 observations
 
@@ -73,10 +87,10 @@ def apply_model(target, horizon, train_size, model, eval_form, r_max, fmd):
     keys = ['y', 'X']
     data_train = {k: v for k, v in zip(keys, arrays)}
 
-    par, MSE, mat = get_best_model(data_train, model, eval_form, r_max)
+    par, MSE, delta = get_best_model(data_train, model, eval_form, r_max)
 
-    if model == 'Ridge':
-        pred_oos = X_test @ mat['delta']
+    if model in ['Ridge', 'PLS', 'LF']:
+        pred_oos = X_test @ delta
 
     elif model == 'PC':
         T, N = X_test.shape
@@ -84,10 +98,7 @@ def apply_model(target, horizon, train_size, model, eval_form, r_max, fmd):
         psi_svd, sigma, phi_T_svd = psi_svd.real, sigma.real, phi_T_svd.real
         psi_svd = psi_svd[:, :par]
 
-        pred_oos = psi_svd @ mat['delta']
-
-    elif model == 'PLS':
-        pred_oos = X_test @ mat['delta']
+        pred_oos = psi_svd @ delta
 
 
     errors = Y_test - pred_oos
@@ -95,11 +106,51 @@ def apply_model(target, horizon, train_size, model, eval_form, r_max, fmd):
 
     return par, MSE, MSE_oos
 
+def get_plot_data(params, fmd, h):
+    MSEs = []
+
+    for model in ['PC', 'Ridge', 'PLS', 'LF']:    # leave LF out for now
+        for y in ['INDPRO', 'UNRATE', 'HOUST']:
+            for crit in ['GCV', 'Mallow']:
+                params_new = params.copy()
+                params_new['model'] = model
+                params_new['target'] = y
+                params_new['eval_form'] = crit
+                params_new['horizon'] = h
+                par, MSE_is, MSE_oos = apply_model(**params_new, fmd=fmd)
+                MSEs.append(
+                    {
+                        'Target': y,
+                        'Method': model + ': ' + crit,
+                        'MSE_is': MSE_is,
+                        'MSE_oos': MSE_oos,
+                        'opt_par': par,
+                        'horizon': h
+                    }
+                )
+    MSE_df = pd.DataFrame(MSEs)
+    return(MSE_df)
+
+def plot_mse(plot_df, mse_type, plotname):
+    fig, ax = plt.subplots()
+    sns.scatterplot(data=plot_df, x='Method', y=mse_type, s=40, hue='Target', ax = ax)
+    # for i in range(len(plot_df['Method'])):
+    #     plt.annotate(round(plot_df[mse_type][i], 4), (plot_df['Method'][i], plot_df[mse_type][i] + np.std(plot_df[mse_type])),
+    #                  ha='center')
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles=handles[1:], labels=labels[1:])
+    plt.legend(loc='upper left')
+    plt.ylim((-0.005, max(plot_df[mse_type] + 0.01)))
+    plt.ylabel('MSE')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig(outpath + mse_type + plotname + '.png')
+    plt.close()
 
 
 
 
-# # variables of interest: Industrial Production (INDPRO), Unemployment Rate (UNRATE), CPI (INF) following
+# # variables of interest: Industrial Production (INDPRO), Unemployment Rate (UNRATE), (HOUST) following
 # # Coulombe et al.
 
 fmd = FredMD(Nfactor=None, vintage=None, maxfactor=8, standard_method=2, ic_method=2)
@@ -107,47 +158,41 @@ fmd = FredMD(Nfactor=None, vintage=None, maxfactor=8, standard_method=2, ic_meth
 params = {
     'model': 'Ridge',
     'eval_form': 'Mallow',
-    'r_max': 10,
-    'target': 'INDPRO',
-    'horizon': 4,
+    'r_max': 15,
+    'target': 'HOUST',
+    'horizon': 1,
     'train_size': 0.8}
 
 par, MSE_is, MSE_oos = apply_model(**params, fmd=fmd)
 
-# BaiNg factor estimation
-fmd.estimate_factors()
-f = fmd.factors
-# from bai ng we get 7 factors
+# horizon = 1
+df_p_h1 = get_plot_data(params, fmd, h=1)
+plot_mse(df_p_h1, mse_type='MSE_oos', plotname='_h1')
+
+# remove houst for better comparison
+df_p_h1_sub = df_p_h1[df_p_h1['Target'] != 'HOUST']
+plot_mse(df_p_h1_sub, mse_type='MSE_oos', plotname='_h1_noHOUST')
+
+# horizon = 3
+df_p_h3 = get_plot_data(params, fmd, h=3)
+plot_mse(df_p_h3, mse_type='MSE_oos', plotname='_h3')
+
+# remove houst for better comparison
+df_p_h3_sub = df_p_h3[df_p_h3['Target'] != 'HOUST']
+plot_mse(df_p_h3_sub, mse_type='MSE_oos', plotname='_h3_noHOUST')
+
+# horizon = 9
+df_p_h9 = get_plot_data(params, fmd, h=9)
+plot_mse(df_p_h9, mse_type='MSE_oos', plotname='_h9')
+
+# remove houst for better comparison
+df_p_h9_sub = df_p_h9[df_p_h9['Target'] != 'HOUST']
+plot_mse(df_p_h9_sub, mse_type='MSE_oos', plotname='_h9_noHOUST')
 
 
-# problem: PC just returns r_max as optimal number of factors
-# PLS returned 5 but now not working because we need to fix delta
+# export table to latex
+df_p_h1 = df_p_h1.sort_values(by=['Target', 'Method'])
+print(df_p_h1.to_latex(index=False))
 
 
-# code to experiment with get_best_model func
-
-# df['y'] = df['INDPRO'].shift(+1)
-#
-# # because of many columns with missing NAs remove columns where more than 1% are missing
-# df = df[df.columns[df.isnull().mean() < 0.01]].dropna(axis=0)
-# # like this we only drop 3 observations
-#
-# # standardize data
-# scale = StandardScaler()
-# X = scale.fit_transform(df[df.columns[~df.columns.isin(['INDPRO'])]])
-#
-# #
-# Y = scale.fit_transform(df[df.columns[df.columns.isin(['y'])]])
-#
-#
-# arrays = [Y, X]
-# keys = ['y', 'X']
-# data = {k: v for k, v in zip(keys, arrays)}
-
-# par, MSE, mat = get_best_model(data, params)
-
-y = fmd.rawseries[target].tail(-2) # in cleaned data we drop first two obs
-og = y.tail(-horizon)
-shifted = y.shift(+horizon).dropna(axis=0)
-y = (1/horizon) * np.log(shifted/og)
 

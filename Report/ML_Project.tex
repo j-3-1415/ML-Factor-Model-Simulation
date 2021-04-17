@@ -171,13 +171,141 @@ Leave-one-out Cross Validation:
 \clearpage
 
 \section{Empirical Application}
-We build on the long history of machine learning in forecasting macroeconomic variables\footnote{See e.g. ...} and use the Federal Reserve Bank's monthly database, which was established for empirical analysis that requires 'big data', hence constituting an ideal environment for the estimators discussed above. We took inspiration from the work of Coulombe et al. (2020) but limit ourselves to PC, Ridge, PLS and LF.\footnote{Unfortunately we were unable to use (1) Gu et al. (2020) as TSE does not have access to WDRS returns, (2) as only data on the resulting factors is available or (3) as they do not offer any replication data.} 
+\subsection{Introduction and Data}
+Building on the long history of machine learning in forecasting macroeconomic variables\footnote{See e.g. ...} we use the Federal Reserve Bank's monthly database (FRED-MD) to apply the estimators discussed above on real data. This database was established for empirical analysis that requires 'big data' and hence constitutes an ideal environment to employ the methods discussed above. We took inspiration from the work of Coulombe et al. (2020) but limit ourselves to PC, Ridge, PLS and LF.\footnote{Unfortunately we were unable to use (1) Gu et al. (2020) as TSE does not have access to WDRS returns, (2) as only data on the resulting factors is available or (3) as they do not offer any replication data.} 
 The dataset contains 134 monthly US macroeconomic and financial indicators observed from January 1959 to January 2021. An overview of all variables is given in the appendix. 
-Following Coulombe et al. (2020) we predict three indicators which are of key economic interest, namely Industrial Production (INDPRO), Unemployment Rate (UNRATE), and the Consumer Price Index (INF). For each of these variables of interest $Y_t$ we define the forecast objective as
+Following Coulombe et al. (2020) we predict three indicators which are of key economic interest, namely Industrial Production (INDPRO), Unemployment Rate (UNRATE), and the Consumer Price Index (INF).\footnote{Fortunately McCracken and Ng (2016), the accompanying paper of the dataset, outlines a transformation method for each variable to achieve stationarity. We apply those transformations in our data preparation.}
+For each of these variables of interest $Y_t$ we follow Coulombe et al (2020) in defining the forecast objective as
 
 \begin{align}
 	y_{t+h} = (1/h) ln(Y_{t+h}/Y_t)
 \end{align}
+
+where $h$ denotes the number of periods ahead. This allows us to assess the performance of our predictive methods for further periods ahead.
+
+\subsection{Evaluation}
+We evaluate the performance of our methods on two metrics, in-sample MSE and out of sample MSE. To be able to compute the latter we split our data into a training and a test set where the former spans all observations from ... to ... amounting to 80\% of the data. We conduct forecasts for $h = \{1, 3, 9\}$ periods ahead. In line with the findings of Coulombe et al (2020) we observe that the performance increases for further periods ahead. Given the simulation results we expect Ridge to deliver the best results, here defined as yielding the smallest MSE, both in sample and out of sample. Importantly we find that the number of factors $k$ as well as the penalty parameter $\alpha$ are very stable across all methods of parameter tuning (i.e. GCV, Mallows, LOO-CV) and across dependent variables. We were unable to discover evidence supporting nor disputing this finding in the literature related to the usage of FRED-MD.\footnote{We apply the same exact estimators as in the simulations hence we see room for error only in our data preparation steps, which are, however, directly taken from the literature. Given the nature of the data we might take this finding as an indication for a stable factor structure. Future research could discover interesting patterns.} We therefore only report the tuning parameters in the appendix. 
+
+\subsection{Results and Discussion}
+Given the similarity of the selected tuning parameters we only show MSE estimates for parameters selected by GCV.\footnote{For details see table \ref{}}
+
+\begin{tabular}{lllrrrr}
+\toprule
+{} &  Target &         Method &    MSE\_is &   MSE\_oos &    opt\_par &  horizon \\
+\midrule
+22 &   HOUST &        LF: GCV &  0.005382 &  0.007627 &   0.000117 &        1 \\
+23 &   HOUST &     LF: Mallow &  0.005382 &  0.007627 &   0.000117 &        1 \\
+4  &   HOUST &        PC: GCV &  0.005383 &  0.010409 &  15.000000 &        1 \\
+5  &   HOUST &     PC: Mallow &  0.005383 &  0.010409 &  15.000000 &        1 \\
+16 &   HOUST &       PLS: GCV &  0.005748 &  0.329750 &  11.000000 &        1 \\
+17 &   HOUST &    PLS: Mallow &  0.005748 &  0.238590 &  15.000000 &        1 \\
+10 &   HOUST &     Ridge: GCV &  0.005016 &  0.008906 &   0.117000 &        1 \\
+11 &   HOUST &  Ridge: Mallow &  0.005016 &  0.008906 &   0.117000 &        1 \\
+18 &  INDPRO &        LF: GCV &  0.000051 &  0.000126 &   0.000117 &        1 \\
+19 &  INDPRO &     LF: Mallow &  0.000051 &  0.000126 &   0.000117 &        1 \\
+0  &  INDPRO &        PC: GCV &  0.000053 &  0.000162 &  13.000000 &        1 \\
+1  &  INDPRO &     PC: Mallow &  0.000053 &  0.000162 &  15.000000 &        1 \\
+12 &  INDPRO &       PLS: GCV &  0.000055 &  0.002139 &  15.000000 &        1 \\
+13 &  INDPRO &    PLS: Mallow &  0.000055 &  0.002139 &  15.000000 &        1 \\
+6  &  INDPRO &     Ridge: GCV &  0.000049 &  0.000130 &   0.117000 &        1 \\
+7  &  INDPRO &  Ridge: Mallow &  0.000049 &  0.000130 &   0.117000 &        1 \\
+20 &  UNRATE &        LF: GCV &  0.000707 &  0.001488 &   0.000117 &        1 \\
+21 &  UNRATE &     LF: Mallow &  0.000707 &  0.001488 &   0.000117 &        1 \\
+2  &  UNRATE &        PC: GCV &  0.000729 &  0.002247 &   9.000000 &        1 \\
+3  &  UNRATE &     PC: Mallow &  0.000729 &  0.002276 &  15.000000 &        1 \\
+14 &  UNRATE &       PLS: GCV &  0.000733 &  0.031782 &  13.000000 &        1 \\
+15 &  UNRATE &    PLS: Mallow &  0.000733 &  0.063822 &  15.000000 &        1 \\
+8  &  UNRATE &     Ridge: GCV &  0.000677 &  0.001779 &   0.117000 &        1 \\
+9  &  UNRATE &  Ridge: Mallow &  0.000677 &  0.001779 &   0.117000 &        1 \\
+\bottomrule
+\end{tabular}
+
+
+%\newcolumntype{M}[1]{>{\centering\arraybackslash}m{#1}}
+\begin{table}[]
+    \centering
+    \begin{tabular}{c}
+        \includegraphics[width=0.6\textwidth]{figures/MSE_oos_h1.png} \\
+        \includegraphics[width=0.6\textwidth]{figures/MSE_oos_h1_noHOUST.png}
+    \end{tabular}
+    \caption*{Out of sample MSE, $h = 1$}
+\end{table}
+
+\begin{table}[]
+    \centering
+    \begin{tabular}{c}
+        \includegraphics[width=0.6\textwidth]{figures/MSE_oos_h3.png} \\
+        \includegraphics[width=0.6\textwidth]{figures/MSE_oos_h3_noHOUST.png}
+    \end{tabular}
+    \caption*{Out of sample MSE, $h = 3$}
+\end{table}
+
+\begin{table}[]
+    \centering
+    \begin{tabular}{c}
+        \includegraphics[width=0.6\textwidth]{figures/MSE_oos_h9.png} \\
+        \includegraphics[width=0.6\textwidth]{figures/MSE_oos_h9_noHOUST.png}
+    \end{tabular}
+    \caption*{Out of sample MSE, $h = 9$}
+\end{table}
+
+
+\clearpage 
+\section*{Appendix}
+
+\subsection*{Data Dictionary}
+\begin{figure}[h!]
+        \centering
+        \caption*{Group 1: Output and income}
+        \includegraphics[width=0.9\textwidth]{figures/G1.png}
+\end{figure}
+
+\begin{figure}
+        \centering
+        \caption*{Group 2: Labour market}
+        \includegraphics[width=0.9\textwidth]{figures/G2.png}
+\end{figure}
+
+\begin{figure}
+        \centering
+        \caption*{Group 3: Housing}
+        \includegraphics[width=0.9\textwidth]{figures/G3.png}
+\end{figure}
+
+\begin{figure}
+        \centering
+        \caption*{Group 4: Consumption, orders and inventories}
+        \includegraphics[width=0.9\textwidth]{figures/G4.png}
+\end{figure}
+
+\begin{figure}
+        \centering
+        \caption*{Group 5: Money and credit}
+        \includegraphics[width=0.9\textwidth]{figures/G5.png}
+\end{figure}
+
+\begin{figure}
+        \centering
+        \caption*{Group 6: Interest and exchange rates}
+        \includegraphics[width=0.9\textwidth]{figures/G6.png}
+\end{figure}
+
+\begin{figure}
+        \centering
+        \caption*{Group 7: Prices}
+        \includegraphics[width=0.9\textwidth]{figures/G7.png}
+\end{figure}
+
+\begin{figure}
+        \centering
+        \caption*{Group 8: Stock market}
+        \includegraphics[width=0.9\textwidth]{figures/G8.png}
+\end{figure}
+
+
+
+
+
 
 
 
