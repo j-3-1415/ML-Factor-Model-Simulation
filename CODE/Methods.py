@@ -1,7 +1,9 @@
-from CODE.DataSim import *
-# from DataSim import *
+# from CODE.DataSim import *
+from DataSim import *
 import operator
 import pandas as pd
+from OutputTex import out_latex
+import os
 
 
 # Methods to cover:
@@ -203,7 +205,7 @@ def monte_carlo(monte_params):
 	best_MSE = []
 	best_DOF = []
 	model = monte_params['model']
-	eval_form = monte_params['eval']
+	eval_form = monte_params['method']
 	crit_var = ['alphas', 'k'][model in ['PC', 'PLS', 'BaiNg']]
 
 	sim_params = {
@@ -269,46 +271,86 @@ def monte_carlo(monte_params):
 	return(best_param, best_MSE, best_DOF)
 
 
-monte_params = {
-	'N': 100,
-	'T': 50,
-	'sims': 25,
-	'DGP': 1,
-	'model': 'PLS',
-	'eval': 'LOO_CV'
-}
+# monte_params = {
+# 	'N': 100,
+# 	'T': 50,
+# 	'sims': 25,
+# 	'DGP': 1,
+# 	'model': 'PLS',
+# 	'method': 'LOO_CV'
+# }
 
-# test = monte_carlo(monte_params)
+# best_param, best_MSE, best_DOF = monte_carlo(monte_params)
 
-best_param, best_MSE, best_DOF = monte_carlo(monte_params)
+def gen_tex_dict(tex_params):
 
-sizes = ['500x200', '100x50']
-models = ['PC', 'PLS', 'Ridge', 'LF', 'BaiNg']
-evals = ['GCV', 'Mallow', 'AIC', 'BIC', 'LOO_CV']
-comb = [[i, j, k] for i in sizes for j in models for k in evals]
-check = pd.DataFrame(comb)
-check.columns = ['TxN', 'Model', 'Eval']
-check.loc[:, ['DGP' + str(i + 1) for i in range(6)]] = 'No'
-check = check[~((check['Model'] != 'PLS') & (check['Eval'] == 'LOO_CV'))].reset_index().drop('index', axis=1)
-check.loc[check['Model'] == 'BaiNg', 'Eval'] = 'BaiNg'
-check = check[~check.duplicated()].reset_index().drop('index', axis=1)
-check[(check['Model'] == 'PC') & (check['Eval'] == 'GCV')][['DGP1', 'DGP3', 'DGP4']]
+	tex_params = tex_params.copy()
 
+	tex_dict = {'N' : tex_params['N'], 'T' : tex_params['T'],
+		'method' : tex_params['method'],
+		'r' : [4, 50, 5, 5, tex_params['N'], 1],
+		'PC' : {'params' : np.ones(6), 'se' : np.ones(6)},
+		'PLS' : {'params' : np.ones(6), 'se' : np.ones(6)},
+		'Ridge' : {'alpha' : {'params' : np.ones(6), 'se' : np.ones(6)},
+			'DOF' : {'params' : np.ones(6), 'se' : np.ones(6)}},
+		'LF' : {'alpha' : {'params' : np.ones(6), 'se' : np.ones(6)},
+			'DOF' : {'params' : np.ones(6), 'se' : np.ones(6)}}
+		}
 
-from itertools import combinations
-from scipy.special import comb
+	for model in tex_params['models']:
+		for dgp in range(6):
+			print("Running Model Simulation %s"%model)
+			print('Running DGP%s'%str(dgp + 1))
+			monte_params = {
+				'N': tex_params['N'],
+				'T': tex_params['T'],
+				'sims': tex_params['sims'],
+				'DGP': (dgp + 1),
+				'model': model,
+				'method': tex_params['method']
+			}
+			if (model == 'PLS')&(tex_params['method'] == 'GCV'):
+				monte_params['method'] = 'LOO_CV'
 
-M = list(range(1, 201))
-k = list(range(1, 12))
-subsets = []
-for length in k:
-	for subset in combinations(M, length):
-		subsets.append(subset)
+			params, mse, dof = monte_carlo(monte_params)
 
-	choose_sum = 0
-for i in k:
-	choose_sum += comb(M[-1], i)
+			if model in ['PC', 'PLS']:
+				tex_dict[model]['params'][dgp] = np.mean(params)
+				tex_dict[model]['se'][dgp] = np.std(params)
+			else:
+				tex_dict[model]['alpha']['params'][dgp] = np.mean(params)
+				tex_dict[model]['alpha']['se'][dgp] = np.std(params)
+				tex_dict[model]['DOF']['params'][dgp] = np.mean(dof)
+				tex_dict[model]['DOF']['se'][dgp] = np.std(dof)
 
+	return(tex_dict)
+
+for N, T in [(200, 500), (100, 50)]:
+	for method in ['GCV', 'Mallow']:
+
+		tex_params = {
+			'N': N,
+			'T': T,
+			'sims': 25,
+			'method': method,
+			'models' : ['PC', 'PLS', 'Ridge', 'LF']
+		}
+
+		file = "Table_N%s_T%s_Eval%s_Sims%s.tex"%(N, T, method, 25)
+		file = os.path.abspath("..") + "/Report/" + file
+		tex_string = out_latex(file, gen_tex_dict(tex_params))
+
+# sizes = ['500x200', '100x50']
+# models = ['PC', 'PLS', 'Ridge', 'LF', 'BaiNg']
+# evals = ['GCV', 'Mallow', 'AIC', 'BIC', 'LOO_CV']
+# comb = [[i, j, k] for i in sizes for j in models for k in evals]
+# check = pd.DataFrame(comb)
+# check.columns = ['TxN', 'Model', 'Eval']
+# check.loc[:, ['DGP' + str(i + 1) for i in range(6)]] = 'No'
+# check = check[~((check['Model'] != 'PLS') & (check['Eval'] == 'LOO_CV'))].reset_index().drop('index', axis=1)
+# check.loc[check['Model'] == 'BaiNg', 'Eval'] = 'BaiNg'
+# check = check[~check.duplicated()].reset_index().drop('index', axis=1)
+# check[(check['Model'] == 'PC') & (check['Eval'] == 'GCV')][['DGP1', 'DGP3', 'DGP4']]
 
 
 
