@@ -36,8 +36,10 @@ def get_best_model(data, model, eval_form, r_max):
 
     param_dict = dict(zip(data[crit_var], data['criteria']))
     MSE_dict = dict(zip(data[crit_var], data['MSE']))
+    DOF_dict = dict(zip(data[crit_var], data['DOF']))
     curr_par = min(param_dict.items(), key=operator.itemgetter(1))[0]
     curr_MSE = min(MSE_dict.values())
+    curr_DOF = DOF_dict[curr_par]
 
     if model in ['Ridge', 'LF']:
         data['alphas'] = [curr_par]
@@ -49,7 +51,7 @@ def get_best_model(data, model, eval_form, r_max):
     delta = mat['delta']
 
 
-    return (curr_par, curr_MSE, delta)
+    return (curr_par, curr_MSE, curr_DOF, delta)
 
 
 # putting everything together
@@ -87,7 +89,7 @@ def apply_model(target, horizon, train_size, model, eval_form, r_max, fmd):
     keys = ['y', 'X']
     data_train = {k: v for k, v in zip(keys, arrays)}
 
-    par, MSE, delta = get_best_model(data_train, model, eval_form, r_max)
+    par, MSE, DOF, delta = get_best_model(data_train, model, eval_form, r_max)
 
     if model in ['Ridge', 'PLS', 'LF']:
         pred_oos = X_test @ delta
@@ -104,7 +106,7 @@ def apply_model(target, horizon, train_size, model, eval_form, r_max, fmd):
     errors = Y_test - pred_oos
     MSE_oos = np.power(np.linalg.norm(errors), 2) / len(errors)
 
-    return par, MSE, MSE_oos
+    return par, MSE, MSE_oos, DOF
 
 def get_plot_data(params, fmd, h):
     MSEs = []
@@ -117,7 +119,7 @@ def get_plot_data(params, fmd, h):
                 params_new['target'] = y
                 params_new['eval_form'] = crit
                 params_new['horizon'] = h
-                par, MSE_is, MSE_oos = apply_model(**params_new, fmd=fmd)
+                par, MSE_is, MSE_oos, DOF = apply_model(**params_new, fmd=fmd)
                 MSEs.append(
                     {
                         'Target': y,
@@ -125,7 +127,8 @@ def get_plot_data(params, fmd, h):
                         'MSE_is': MSE_is,
                         'MSE_oos': MSE_oos,
                         'opt_par': par,
-                        'horizon': h
+                        'horizon': h,
+                        'DOF': DOF
                     }
                 )
     MSE_df = pd.DataFrame(MSEs)
@@ -191,8 +194,15 @@ plot_mse(df_p_h9_sub, mse_type='MSE_oos', plotname='_h9_noHOUST')
 
 
 # export table to latex
-df_p_h1 = df_p_h1.sort_values(by=['Target', 'Method'])
-print(df_p_h1.to_latex(index=False))
+df = df_p_h1.sort_values(by=['Target', 'Method'])
+df['opt_par'] = round(df['opt_par'], 4)
+df['MSE_oos3'] = df_p_h3['MSE_oos']
+df['MSE_oos9'] = df_p_h9['MSE_oos']
+
+print(df[df['Target']=='INDPRO'].to_latex(index=False, columns=['Method', 'MSE_oos', 'MSE_oos3', 'MSE_oos9', 'opt_par', 'DOF']))
+print(df[df['Target']=='UNRATE'].to_latex(index=False, columns=['Method', 'MSE_oos', 'MSE_oos3', 'MSE_oos9', 'opt_par', 'DOF']))
+print(df[df['Target']=='HOUST'].to_latex(index=False, columns=['Method', 'MSE_oos', 'MSE_oos3', 'MSE_oos9', 'opt_par', 'DOF']))
+
 
 
 
