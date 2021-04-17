@@ -1,8 +1,9 @@
-from CODE.DataSim import *
-# from DataSim import *
+# from CODE.DataSim import *
+from DataSim import *
 import operator
 import pandas as pd
-from CODE.OutputTex import out_latex
+from OutputTex import out_latex
+# from CODE.OutputTex import out_latex
 import os
 
 
@@ -325,18 +326,18 @@ def gen_tex_dict(tex_params):
 
 	return(tex_dict)
 
-for N, T in [(200, 500), (100, 50)]:
+for N, T in [(200, 500)]:
 	for method in ['GCV', 'Mallow']:
 
 		tex_params = {
 			'N': N,
 			'T': T,
-			'sims': 100,
+			'sims': 50,
 			'method': method,
 			'models' : ['PC', 'PLS', 'Ridge', 'LF']
 		}
 
-		file = "Table_N%s_T%s_Eval%s_Sims%s.tex"%(N, T, method, 100)
+		file = "Table_N%s_T%s_Eval%s_Sims%s.tex"%(N, T, method, tex_params['sims'])
 		file = os.path.abspath("..") + "/Report/" + file
 		tex_string = out_latex(file, gen_tex_dict(tex_params))
 
