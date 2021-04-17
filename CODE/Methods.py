@@ -86,8 +86,8 @@ def get_model_output(data, model, iteration):
 		# M_ty = M_t @ y
 		# delta = delt @ y
 		k = data['k'][iteration]
-		S = S_xy
-		S = X.T @ y
+		# S = S_xy
+		S = (X.T @ y).reshape((S_xy.shape[0], 1))
 		R = np.zeros((N, k))
 		T = np.zeros((T, k))
 		P = np.zeros((N, k))
