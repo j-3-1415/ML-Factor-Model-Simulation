@@ -43,6 +43,7 @@ def plot_MSE(N, T, sims, DGP):
 
 
 for i in range(6):
-    plot_MSE(100, 50, 100, i+1)
+    plot_MSE(100, 50, 1000, i+1)
 
-plot_MSE(100, 50, 10, 3)
+for i in range(6):
+    plot_MSE(200, 500, 1000, i + 1)
