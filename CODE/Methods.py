@@ -331,12 +331,12 @@ for N, T in [(200, 500), (100, 50)]:
 		tex_params = {
 			'N': N,
 			'T': T,
-			'sims': 25,
+			'sims': 100,
 			'method': method,
 			'models' : ['PC', 'PLS', 'Ridge', 'LF']
 		}
 
-		file = "Table_N%s_T%s_Eval%s_Sims%s.tex"%(N, T, method, 25)
+		file = "Table_N%s_T%s_Eval%s_Sims%s.tex"%(N, T, method, 100)
 		file = os.path.abspath("..") + "/Report/" + file
 		tex_string = out_latex(file, gen_tex_dict(tex_params))
 
