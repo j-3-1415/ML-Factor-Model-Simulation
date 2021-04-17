@@ -331,7 +331,7 @@ for N, T in [(200, 500), (100, 50)]:
 		tex_params = {
 			'N': N,
 			'T': T,
-			'sims': 25,
+			'sims': 50,
 			'method': method,
 			'models' : ['PC', 'PLS', 'Ridge', 'LF']
 		}
