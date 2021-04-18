@@ -5,90 +5,72 @@ import pandas as pd
 from OutputTex import out_latex
 # from CODE.OutputTex import out_latex
 import os
+import datetime
 
-
-# Methods to cover:
-# PCA, PLS, Ridge, LF, LASSO,
-
-# run model function notes:
-# Input simulated data, choose model, select penalty parameter choice method and rmax (maximum number of factors)
-# Returns dictionary with
-# 1. Value of penalty selection problem -- key: !!depending on method!!
-# 2. Estimated parameters delta -- key: delta
-# 3. Fitted values y_hat -- key: y_hat
-# 4. Optimal penalty parameter -- key: !!depending on model!!
-
-# alternatively: start from equation 14
-def get_model_output(data, model, iteration):
+def get_model_output(data, model, iteration, prev_vals, cv_time):
 	data = data.copy()
 
 	r_max = int(data['r_max'])
 
 	X = data['X']
-	# X = X[:, :r_max]
 	y = data['y']
 	T = X.shape[0]
 	N = X.shape[1]
-	# r_max = min(N, T)
+	I = data['I']
+	if model == 'Ridge':
+		X = X[:, :r_max]
+		I = I[:r_max, :r_max]
 
-	S_xx = (X.T @ X) / T
-	S_xy = (X.T @ y) / T
+	if iteration == 0:
+		if model in ['PLS', 'Ridge']:
+			s = datetime.datetime.now()
+			S_xx = (X.T @ X) / T
+			prev_vals['S_xx'] = S_xx
+			cv_time['Sxx_Time'].append((datetime.datetime.now() - s).total_seconds())
+		else:
+			# sigma, psi_svd = np.linalg.eig((X @ X.T)/ T)
+			# sigma, psi_svd = sigma.real, psi_svd.real
 
-	# psi_svd, sigma, phi_T_svd = np.linalg.svd(X)
-	# psi_svd, sigma, phi_T_svd = psi_svd.real, sigma.real, phi_T_svd.real
+			# lambda_sq, psi = np.linalg.eig(S_xx)
+			# lambda_sq, psi = lambda_sq.real, psi.real
 
-	sigma, psi_svd = np.linalg.eig((X @ X.T)/ T)
-	sigma, psi_svd = sigma.real, psi_svd.real
+			u, sigma, v = np.linalg.svd(X)
+			psi = v.T.real
+			lambda_sq = np.power(sigma.real, 2)
+			psi_svd = u.real
+			prev_vals['psi'], prev_vals['psi_svd'] = psi, psi_svd
+			prev_vals['lambda_sq'] = lambda_sq
+	else:
+		if model in ['PLS', 'Ridge']:
+			S_xx = prev_vals['S_xx']
+		else:
+			psi, psi_svd = prev_vals['psi'], prev_vals['psi_svd']
+			lambda_sq = prev_vals['lambda_sq']
 
-	lambda_sq, psi = np.linalg.eig(S_xx)
-	lambda_sq, psi = lambda_sq.real, psi.real
 
 	if model == 'PC':
-		psi_svd = psi_svd[:, :data['k'][iteration]]
-		delt = np.linalg.inv(psi_svd.T @ psi_svd) @ psi_svd.T
-		M_t = psi_svd @ delt
-		M_ty = M_t @ y
-		delta = delt @ y
+		psi_j = psi_svd[:, :data['k'][iteration]]
+		delt = np.linalg.inv(psi_j.T @ psi_j) @ psi_j.T
 
 	elif model == 'Ridge':
-		I = np.identity(X.shape[1])
+		r = datetime.datetime.now()
 		delt = (np.linalg.inv(S_xx + data['alphas'][iteration] * I) @ X.T) / T
-		M_t = X @ delt
-		M_ty = M_t @ y
-		delta = delt @ y
+		cv_time['Ridge_Inv'].append((datetime.datetime.now() - r).total_seconds())
 
 	elif model == 'LF':
 		alpha = data['alphas'][iteration]
 		d = 0.018 / np.amax(lambda_sq)  # as defined on page 327
+		q = (1 - np.power((1 - d * lambda_sq), (1 / alpha))) / lambda_sq
 		delt = np.zeros((N, T))
 		for i in range(0, min(N, T)):
-			q = (1 - np.power((1 - d * lambda_sq[i]), (1 / alpha))) / lambda_sq[i]
 			psi_j = psi_svd[:, i].reshape((T, 1))
-			delt += q * (X.T @ psi_j @ psi_j.T)
+			delt += q[i] * (X.T @ psi_j @ psi_j.T)
 		delt = delt / T
-		M_t = X @ delt
-		M_ty = M_t @ y
-		delta = delt @ y
 
 	elif model == 'PLS':
-		# vals, vecs = np.linalg.eig(S_xy @ S_xy.T)
-		# vals, vecs = vals.real, vecs.real
-		# vecs = vecs[:, np.argsort(vals)[::-1]]
-		# V_k = vecs[:, :data['k'][iteration]]
-		# u, s, v = np.linalg.svd(X.T @ y @ y.T @ X)
-		# u, s, v = u.real, s.real, v.real
-		# u = u[:, np.argsort(s)[::-1]]
-		# V_k = u[:, :data['k'][iteration]]
-		# V_k = np.tile(X.T @ y, (1, data['k'][iteration]))
-		# for i in range(1, data['k'][iteration]):
-		#     V_k[:, i] = X.T @ X @ V_k[:, i - 1]
-		# delt = V_k @ np.linalg.inv(V_k.T @ X.T @ X @ V_k) @ V_k.T @ X.T
-		# M_t = X @ delt
-		# M_ty = M_t @ y
-		# delta = delt @ y
 		k = data['k'][iteration]
-		# S = S_xy
-		S = (X.T @ y).reshape((S_xy.shape[0], 1))
+		S_xy = (X.T @ y) / T
+		S = S_xy.reshape((S_xy.shape[0], 1))
 		R = np.zeros((N, k))
 		T = np.zeros((T, k))
 		P = np.zeros((N, k))
@@ -106,27 +88,25 @@ def get_model_output(data, model, iteration):
 			P[:, i] = (X.T @ T[:, i]) / (T[:, i].T @ T[:, i])
 
 		delt = R @ np.linalg.inv(T.T @ T) @ T.T
+
+	m = datetime.datetime.now()
+	if model == 'PC':
+		M_t = psi_j @ delt
+	else:
 		M_t = X @ delt
-		M_ty = M_t @ y
-		delta = delt @ y
 
-
-	elif model == 'BaiNg':
-		F_tild = np.sqrt(T) * psi_svd[:, :data['k'][iteration]]
-		lambda_tild = np.linalg.inv(F_tild.T @ F_tild) @ (F_tild.T @ X)
-		M_t = F_tild @ lambda_tild
-		M_ty = None
+	M_ty = M_t @ y
+	delta = delt @ y
+	cv_time['Mt_Time'].append((datetime.datetime.now() - m).total_seconds())
 
 	data['M_t'] = M_t
 	data['M_ty'] = M_ty
 	data['delta'] = delta
 
-	return(data)
+	return(data, prev_vals, cv_time)
 
 def mallow_sig(data, model):
 	data = data.copy()
-
-	# r_max = int(data['r_max'])
 
 	X = data['X']
 	y = data['y']
@@ -147,23 +127,16 @@ def mallow_sig(data, model):
 	return(e, sigma_e)
 
 
-def cv(data, model, method, iteration):
+def cv(data, model, method, iteration, prev_vals, cv_time):
 	data = data.copy()
+	a = datetime.datetime.now()
+	data, prev_vals, cv_time = get_model_output(data, model, iteration, prev_vals, cv_time)
+	cv_time['Model'].append((datetime.datetime.now() - a).total_seconds())
 
-	data = get_model_output(data, model, iteration)
-
+	a = datetime.datetime.now()
 	y = data['y']
 	N = data['X'].shape[1]
 	T = y.shape[0]
-	e, sigma_e = mallow_sig(data, model)
-
-	if model == 'BaiNg':
-		V = (1 / (N * T)) * np.sum(np.power(data['X'] - data['M_t'], 2))
-		crit =  V + (sigma_e * data['k'][iteration] * ((N + T) / (N * T)) * np.log(min(N, T)))
-		# crit = V * (1 + data['k'][iteration] * ((N + T) / (N * T)) * np.log(min(N, T)))
-		data['criteria'][iteration] = crit
-		data['MSE'][iteration] = None
-		return(data)
 
 	M_t = data['M_t']
 	M_ty = data['M_ty']
@@ -179,6 +152,7 @@ def cv(data, model, method, iteration):
 		crit = numer / denom
 
 	elif method == 'Mallow':
+		e, sigma_e = mallow_sig(data, model)
 		crit = ((1 / T) * error_norm) + (2 * sigma_e * (1 / T) * trM_t)
 
 	elif method == 'AIC':
@@ -194,7 +168,9 @@ def cv(data, model, method, iteration):
 	data['MSE'][iteration] = error_norm / len(errors)
 	data['DOF'][iteration] = trM_t
 
-	return (data)
+	cv_time['Eval'].append((datetime.datetime.now() - a).total_seconds())
+
+	return (data, cv_time)
 
 
 def monte_carlo(monte_params):
@@ -208,13 +184,13 @@ def monte_carlo(monte_params):
 	model = monte_params['model']
 	eval_form = monte_params['method']
 	crit_var = ['alphas', 'k'][model in ['PC', 'PLS', 'BaiNg']]
+	I = np.identity(N)
 
 	sim_params = {
 		'r': [4, 50, 5, 5, N, 1],
 		'r_max': [14, np.floor(min(N, (T / 2))), np.floor(min(15, min(N, (T / 2)))), 15, np.floor(min(N, (T / 2))), 11]
 	}
 	r_max = int(sim_params['r_max'][DGP - 1])
-	# r_max = min(N, T)
 
 	crit_dict = {'k':
 		{'PC': [list(range(0, (r_max + 1)))] * 6,
@@ -238,17 +214,24 @@ def monte_carlo(monte_params):
 	header = "Simulation|Current Best|Roll Mean|Roll Std|Roll DOF|Roll MSE"
 	cols = [len(x) for x in header.split("|")]
 	print(header)
+	cv_time = {'Model' : [], 'Eval' : [], 'Ridge_Inv' : [], 'Mt_Time' : [],
+	'Sxx_Time' : [], 'Gen_Time' : []}
 	for sim in range(sims):
 
+		g = datetime.datetime.now()
 		sim_data = gen_sim(sim_params, 'DGP' + str(DGP), N, T)
+		prev_vals = {}
+		# return(sim_data)
+		cv_time['Gen_Time'].append((datetime.datetime.now() - g).total_seconds())
+		# print("Single Simulation Data Gen Time: %s"%single_gen)
 		sim_data[crit_var] = crit_dict[crit_var][model][DGP - 1]
 		sim_data['criteria'] = np.ones(len(sim_data[crit_var]))
 		sim_data['MSE'] = np.ones(len(sim_data[crit_var]))
 		sim_data['DOF'] = np.ones(len(sim_data[crit_var]))
+		sim_data['I'] = I
 
 		for i in range(len(sim_data[crit_var])):
-			sim_data = cv(sim_data, model, eval_form, i)
-			# return(sim_data)
+			sim_data, cv_time = cv(sim_data, model, eval_form, i, prev_vals, cv_time)
 
 		param_dict = dict(zip(sim_data[crit_var], sim_data['criteria']))
 		MSE_dict = dict(zip(sim_data[crit_var], sim_data['MSE']))
@@ -269,7 +252,7 @@ def monte_carlo(monte_params):
 			'{0:.2f}'.format(np.mean(best_MSE)) + " " * (cols[5] - len('{0:.2f}'.format(np.mean(best_MSE))) - 1) + "|")
 	print("-" * len(header))
 
-	return(best_param, best_MSE, best_DOF)
+	return(best_param, best_MSE, best_DOF, cv_time)
 
 
 # monte_params = {
@@ -280,6 +263,8 @@ def monte_carlo(monte_params):
 # 	'model': 'PLS',
 # 	'method': 'LOO_CV'
 # }
+
+# test = monte_carlo(monte_params)
 
 # best_param, best_MSE, best_DOF = monte_carlo(monte_params)
 
@@ -300,8 +285,7 @@ def gen_tex_dict(tex_params):
 
 	for model in tex_params['models']:
 		for dgp in range(6):
-			print("Running Model Simulation %s"%model)
-			print('Running DGP%s'%str(dgp + 1))
+			print("Running Model Simulation %s and DGP%s"%(model, (dgp + 1)))
 			monte_params = {
 				'N': tex_params['N'],
 				'T': tex_params['T'],
@@ -313,7 +297,17 @@ def gen_tex_dict(tex_params):
 			if (model == 'PLS')&(tex_params['method'] == 'GCV'):
 				monte_params['method'] = 'LOO_CV'
 
-			params, mse, dof = monte_carlo(monte_params)
+			a = datetime.datetime.now()
+			params, mse, dof, cv_time = monte_carlo(monte_params)
+			single_monte = (datetime.datetime.now() - a).total_seconds()
+			# print("Single Monte Carlo Time: %s"%single_monte)
+			# print("Data Gen Time %s"%np.sum(cv_time['Gen_Time']))
+			# print("Model Time %s"%np.sum(cv_time['Model']))
+			# print("Eval Time %s"%np.sum(cv_time['Eval']))
+			# print("M_t Time %s"%np.sum(cv_time['Mt_Time']))
+			# if model == 'Ridge':
+			# 	print("Sxx Time %s"%np.sum(cv_time['Sxx_Time']))
+			# 	print('Ridge Inverse Time %s'%np.sum(cv_time['Ridge_Inv']))
 
 			if model in ['PC', 'PLS']:
 				tex_dict[model]['params'][dgp] = np.mean(params)
@@ -324,7 +318,7 @@ def gen_tex_dict(tex_params):
 				tex_dict[model]['DOF']['params'][dgp] = np.mean(dof)
 				tex_dict[model]['DOF']['se'][dgp] = np.std(dof)
 
-	return(tex_dict)
+	return(tex_dict, cv_time)
 
 for N, T in [(200, 500)]:
 	for method in ['GCV', 'Mallow']:
@@ -332,26 +326,15 @@ for N, T in [(200, 500)]:
 		tex_params = {
 			'N': N,
 			'T': T,
-			'sims': 50,
+			'sims': 1000,
 			'method': method,
 			'models' : ['PC', 'PLS', 'Ridge', 'LF']
+			# 'models' : ['Ridge']
 		}
 
 		file = "Table_N%s_T%s_Eval%s_Sims%s.tex"%(N, T, method, tex_params['sims'])
 		file = os.path.abspath("..") + "/Report/" + file
-		tex_string = out_latex(file, gen_tex_dict(tex_params))
-
-# sizes = ['500x200', '100x50']
-# models = ['PC', 'PLS', 'Ridge', 'LF', 'BaiNg']
-# evals = ['GCV', 'Mallow', 'AIC', 'BIC', 'LOO_CV']
-# comb = [[i, j, k] for i in sizes for j in models for k in evals]
-# check = pd.DataFrame(comb)
-# check.columns = ['TxN', 'Model', 'Eval']
-# check.loc[:, ['DGP' + str(i + 1) for i in range(6)]] = 'No'
-# check = check[~((check['Model'] != 'PLS') & (check['Eval'] == 'LOO_CV'))].reset_index().drop('index', axis=1)
-# check.loc[check['Model'] == 'BaiNg', 'Eval'] = 'BaiNg'
-# check = check[~check.duplicated()].reset_index().drop('index', axis=1)
-# check[(check['Model'] == 'PC') & (check['Eval'] == 'GCV')][['DGP1', 'DGP3', 'DGP4']]
-
+		tex_dict, cv_time = gen_tex_dict(tex_params)
+		tex_string = out_latex(file, tex_dict)
 
 
