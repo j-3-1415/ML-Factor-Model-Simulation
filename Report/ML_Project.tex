@@ -53,21 +53,25 @@
 
 \newpage
 
-\section{Factor Model Context}
+\section{Introduction}
+This report discusses and presents a replication of a selection of findings from \cite{carrasco2016sample} as well as an empirical application of the methods covered. \cite{carrasco2016sample} discusses in-sample prediction and out-of-sample forecasting in regressions with many exogenous predictors based on four dimension-reduction devices: principal components (PCA), ridge, Landweber Fridman (LF), and partial least squares (PLS). Each involves a regularization or tuning parameter that is selected through generalized cross validation (GCV) or Mallows Cp. Following \cite{carrasco2016sample} we evaluate these estimators in a monte carlo simulation framework with 6 different data generating processes (DGP). 
 
-Factor models attempt to explain panels of data in terms of a smaller number of common factors that apply to each of the variables in the dataset. In the case of high dimensional data, factor models are necesssary in order to reduce the dimensionality of the dataset, making estimation possible where the dataset would have been rank deficient before. A factor model on panel data can be represented as:
+\section{Factor Models in Economics}
+
+Factor models attempt to explain panels of data in terms of a smaller number of common factors that apply to each of the variables in the dataset. In the case of high dimensional data, factor models are a useful tool to reduce the dimensionality of the dataset, making estimation possible where the dataset would have been rank deficient before. A factor model on panel data can be represented as
 
 \[\underbrace{X}_{(T \times N)} = \underbrace{F}_{(T \times r)} \underbrace{\Lambda^{'}}_{(r \times N)} + \underbrace{\xi}_{(T \times N)}\]
 
-Additionally, through dimensionality reduction, factor models can find the most important variables that effect the outcome variables.
+where $X$ denotes the matrix of observations, $F$ the underlying factors and $\Lambda$ the corresponding factor loadings. $\xi$ is an idiosyncratic shock. 
 
-For factor models in general, a crucial part of the estimation procedure is determining the number of factors to use. This is the context that \cite{carrasco2016sample} is set in. The parameter used to select the number of factors in a factor model is also known as the regularization parameter. \cite{carrasco2016sample} run simulations to analyze four different dimension reduction devices: (1) Principal Component Analysis, (2) Ridge Regression, (3) Landweber Fridman (LF) regularization, (4) Partial least squares. Each involves a regularization or tuning parameter that is selected through generalized cross validation (GCV). 
+Additionally, through dimensionality reduction, factor models can find the most important variables that effect the outcome variables.
+For factor models in general, a crucial part of the estimation procedure is determining the number of factors to use. This is the context that \cite{carrasco2016sample} is set in. The parameter used to select the number of factors in a factor model is also known as the regularization parameter. \cite{carrasco2016sample} run simulations to analyze each of the different dimension reduction devices. 
 
 % Take two different data generating processes, (1) The eigenvalues of $\frac{X^{'}X}{T}$ are bounded and decline to zero gradually. (2) Popular factor model with a finite number, r, of factors. Here, the r largest eigenvalues grow with N, while the remaining are bounded. In both cases, $\frac{X^{'}X}{T}$ is ill-conditioned, which means the ratio of the largest to smallest eigenvalue diverges, and a regularization terms is needed to invert the matrix.
 
-\section{Data Generating Process}
+\section{Data Generating Process} \label{sec::dgp}
 
-To study how accurate each estimation method is, \cite{carrasco2016sample} simulate six different Data Generating processes, both in the large and small sample cases. In the large sample case, the size of the data set is $N = 200$ and $T = 500$. In the small sample case, the size is $N = 100$ and $T = 50$
+To study how accurate each estimation method is, \cite{carrasco2016sample} simulate six different data generating processes, both in the large and small sample cases. In the large sample case, the size of the data set is $N = 200$ and $T = 500$. In the small sample case, the size is $N = 100$ and $T = 50$
 
 % \[\underbrace{x_{t}}_{(N \times 1)} = \underbrace{\Lambda}_{(N \times r)} \underbrace{F_{t}}_{(r \times 1)} + \underbrace{\xi_{t}}_{(N \times 1)}\]
 
@@ -77,65 +81,104 @@ To study how accurate each estimation method is, \cite{carrasco2016sample} simul
 
 % \[\underbrace{X}_{(T \times N)} = \underbrace{F}_{(T \times r)} \underbrace{\Lambda^{'}}_{(r \times N)} + \underbrace{\xi}_{(T \times N)}\]
 
-DGP 1 (Few Factors Structure):
+\begin{itemize}
+	\item DGP 1 (Few Factors Structure): \\
 $\theta$ is the $(r \times 1)$ vector of ones, $r = 4$ and $r_{max} = r + 10$
-
-DGP 2 (Many Factors Structure):
+	\item DGP 2 (Many Factors Structure): \\
 $\theta$ is the $(r \times 1)$ vector of ones, $r = 50$ and $r_{max} = min(N, \frac{T}{2})$
-
-DGP 3 (Five Factors but only One Relevant):
+	\item DGP 3 (Five Factors but only One Relevant): \\
 $\theta = (1, 0_{1 \times 4})$, $r = 5$ and $r_{max} = min(r + 10, min(N, \frac{T}{2}))$
 
 $F = [F_{1}, F_{2}^{'}]^{'}$ and $F \times F^{'} = \begin{bmatrix} 1 & 0 & 0 & 0 & 0 \\ 0 & 2 & 0 & 0 & 0 \\ 0 & 0 & 3 & 0 & 0 \\ 0 & 0 & 0 & 3 & 0 \\ 0 & 0 & 0 & 0 & 4\end{bmatrix}$
 
 $y = \hat{F} \theta + \nu$ where $\hat{F}$ is generated from $X$ equation in DGP 3, and $\sigma_{\nu} = 0.1$
+	\item DGP 4 ($x_{t}$ Has a Factor Structure but Unrelated to $y_{t}$):
 
-DGP 4 ($x_{t}$ Has a Factor Structure but Unrelated to $y_{t}$):
+$\theta$ is a vector of zeros with dimension $(r \times 1)$. $r = 5$, $r_{max} = r + 10$. $F \times F^{'}$ is defined as in DGP 3. \\
 
-$\theta$ is a vector of zeros with dimension $(r \times 1)$. $r = 5$, $r_{max} = r + 10$. $F \times F^{'}$ is defined as in DGP 3.
+	\item DGP 5 (Eigenvalues Declining Slowly):
 
-DGP 5 (Eigenvalues Declining Slowly):
-
-$\theta$ is an $(N \times 1)$ vector of ones. $r = N$, $r_{max} = min(N, \frac{T}{2}$.
+$\theta$ is an $(N \times 1)$ vector of ones. $r = N$, $r_{max} = min(N, \frac{T}{2})$.
 
 $\Lambda = M \odot \xi$, with $\xi \sim (N \times N)$ matrix of $iidN(0, 1)$
 
 $M \sim (N \times N) = \begin{bmatrix} 1 & 1 & \dotsb & 1 \\ \frac{1}{2} & \frac{1}{2} & \dotsb & \frac{1}{2} \\ \vdots & \vdots & \vdots & \vdots \\ \frac{1}{N} & \frac{1}{N} & \dotsb & \frac{1}{N}\end{bmatrix}$
-
-DGP 6 (Near Factor Model):
+	\item DGP 6 (Near Factor Model):
 
 $\theta = 1$, $r = 1$, $r_{max} = r + 10$, $\Lambda^{'} = \frac{1}{\sqrt{N}}1_{r \times N}$
+\end{itemize}
+
+
 
 \section{Estimation Methods}
 
 \subsection{Notation}
 
+In matrix notation the model is 
+\begin{align*}
+y=\left(\begin{array}{c}
+y_{1} \\
+y_{2} \\
+\vdots \\
+y_{T}
+\end{array}\right), X=\left(\begin{array}{c}
+x_{1}^{\prime} \\
+x_{2}^{\prime} \\
+\vdots \\
+x_{T}^{\prime}
+\end{array}\right), \varepsilon=\left(\begin{array}{c}
+\varepsilon_{1} \\
+\varepsilon_{2} \\
+\vdots \\
+\varepsilon_{T}
+\end{array}\right)
+\end{align*}
+
+
+where $y$ is a $(T \times 1)$ vector, $X$ is a $(T \times N)$ matrix of predictors and $\varepsilon$ is a $(T \times 1)$ vector.
+
+We then write 
 \[S_{xx} = \frac{X^{T} X}{T} \]
 \[S_{xy} = \frac{X^{T} y}{T} \]
-\[M_{T}^{\alpha} \text{ is the projection matrix of y onto the factors of X}\]
-\[\hat{\psi}_{j} \text{ is the } j^{th} \text{ orthonormalized eigenvector of } \frac{X X^{T}}{T}\]
+and 
+$M_{T}^{\alpha}$ as the projection matrix of $y$ onto the factors of $X$. $\hat{\psi}_{j}$ is the  $j^{th}$ orthonormalized eigenvector of $\frac{X X^{T}}{T}$. Moreover we denote as $\alpha$ the choice of penalty parameter which is obtained from one of the selection methods discussed in section \ref{sec::cv}. 
 
-Ridge Estimator:
+We can then express the estimators as follows: 
 
-\[\widehat{y} = M_{T}^{\alpha} y = X (S_{xx} + \alpha I)^{-1} S_{xy}\]
-
-LF Estimator:
-
+\begin{itemize}
+	\item Ridge Estimator: \\
+	 \[\widehat{y} = M_{T}^{\alpha} y = X (S_{xx} + \alpha I)^{-1} S_{xy}\]
+	 where $I$ is the $(N \times N)$ identity matrix.
+	 
+	\item LF Estimator: \\
 \[\widehat{y} = M_{T}^{\alpha} y = X \sum_{j=1}^{\min (N, T)} \frac{\left(1-\left(1-d \widehat{\lambda}_{j}^{2}\right)^{1 / \alpha}\right)}{\widehat{\lambda}_{j}^{2}}\left\langle y, \hat{\psi}_{j}\right\rangle_{T} \frac{X^{\prime} \hat{\psi}_{j}}{T}\]
+Here $d$ denotes XXXX. We follow \cite{carrasco2016sample} and choose $d = 0.018/max(\lambda^2)$. XXXXX WHAT IS NOW LAMBDA SQ AGAIN XXXX.
 
-Spectral Cutoff/Principal Components Estimator:
-
+	\item Spectral Cutoff/Principal Components Estimator: \\
 \[\widehat{y} = M_{T}^{\alpha} y = \widehat{\Psi} \left(\widehat{\Psi}^{\prime} \widehat{\Psi}\right)^{-1} \widehat{\Psi}^{\prime} y\]
+\[\text{ where } \widehat{\Psi} = \left[\widehat{\psi}_{1}\left|\widehat{\psi}_{2}\right| \ldots \mid \widehat{\psi}_{k}\right]\]
+XXX Do we have to say something here about the fact that they are estimated? XXX
 
-\[\text{ Where } \widehat{\Psi} = \left[\widehat{\psi}_{1}\left|\widehat{\psi}_{2}\right| \ldots \mid \widehat{\psi}_{k}\right]\]
-
-Partial Least Squares Estimator:
+	\item Partial Least Squares Estimator: \\
 
 \[\widehat{y} = M_{T}^{\alpha} y = X V_{k}\left(V_{k}^{\prime} X^{\prime} X V_{k}\right)^{-1} V_{k}^{\prime} X^{\prime} y\]
 
-\[\text{ Where } V_{k}=\left(X^{\prime} y, \quad\left(X^{\prime} X\right) X^{\prime} y, \ldots,\left(X^{\prime} X\right)^{k-1} X^{\prime} y\right)\]
+\[\text{ where } V_{k}=\left(X^{\prime} y, \quad\left(X^{\prime} X\right) X^{\prime} y, \ldots,\left(X^{\prime} X\right)^{k-1} X^{\prime} y\right)\]
 
-\subsection{Via SIMPLS Algorithm}
+\end{itemize}
+
+
+
+
+
+
+
+
+
+
+\subsection{SIMPLS Algorithm}
+
+Notably we divert from \cite{carrasco2016sample} to the extent that we implement PLS via the so called SIMPS algorithm. 
 
 \begin{align}
 \nonumber S = X^{T} y & \\
@@ -147,56 +190,64 @@ Partial Least Squares Estimator:
 \nonumber \widehat{y} = M^{\alpha}_{T} y &= X R_{k} (T^{T}_{k} T_{k})^{-1} T^{T}_{k} y
 \end{align}
 
-\section{Evaluation Methods}
+\section{Selection Methods} \label{sec::cv}
 
-Generalized Cross Validation:
+As outlined above the choice of regularization parameter is crucial. We hence implement selection on three criteria.
 
+\begin{itemize}
+	\item Generalized Cross Validation (GCV): \\
 \[\hat{\alpha}=\arg \min _{\alpha \in A_{T}} \frac{T^{-1}\left\|y-M_{T}^{\alpha} y\right\|^{2}}{\left(1-T^{-1} \operatorname{tr}\left(M_{T}^{\alpha}\right)\right)^{2}}\]
 
-Mallows Criterion:
-
+	\item Mallows' Criterion: \\
 \[\hat{\alpha}=\arg \min _{\alpha \in A_{T}} T^{-1}\left\|y-M_{T}^{\alpha} y\right\|^{2}+2 \widehat{\sigma}_{\varepsilon}^{2} T^{-1} \operatorname{tr}\left(M_{T}^{\alpha}\right)\]
+where $\widehat{\sigma}_{\epsilon}^{2}$ is a consistent estimator of the variance of $\epsilon$. In practice this translates to the variance of $\epsilon$ being taken from the errors of the largest model, or from the model with all regressors in the case of PCA.
 
-\[\text{ Where } \widehat{\sigma}_{\epsilon}^{2} \text{ is a consistent estimator of the variance of } \epsilon\]
-
-So variance of $\epsilon$ is taken from the errors of the largest model, or from the model with all regressors for PC.
-
-Leave-one-out Cross Validation:
-
+	\item Leave-one-out Cross Validation (LOO-CV): \\
 \[\hat{\alpha}=\arg \min _{\alpha \in A_{T}} \frac{1}{T} \sum_{t=1}^{T}\left(\frac{y_{i}-\hat{y}_{i, \alpha}}{1-M_{T}^{\alpha}[ii]}\right)^{2}\]
+
+XXX Can we rewrite the predicted values as the usual Mty? XXX
+\end{itemize}
+
+Note that for PC $\operatorname{tr}\left(M_{T}^{\alpha}\right) = k$, i.e. the number of factors. As the trace can be seen as a measure for the effective degrees of freedom which guides the penalty parameter selection we also report it in the output tables (XXX IS THIS CORRECT?? XXX). Moreover, we only use LOO-CV for PLS.  
+
 
 \section{Simulation Results}
 
-\input{Table_N100_T50_EvalGCV_Sims1000}
-\input{Table_N100_T50_EvalMallow_Sims1000}
+We run simulations of the six DGPs outlined in section \ref{sec::dgp} for a small sample $(N = 100, T = 50)$ and a large sample $(N=200, T=500)$. Due to computational limitations we only ran 25 simulations for each of the DGPs in the large sample.\footnote{For the small sample our personal machines provided sufficient computing power to execute 1000 simulations per DGP.}
+
+XXXX DISCUSSION OF FINDINGS XXXX
+
+
+%\input{Table_N100_T50_EvalGCV_Sims1000}
+%\input{Table_N100_T50_EvalMallow_Sims1000}
 
 \clearpage
 
 \section{Empirical Application}
 \subsection{Introduction and Data}
-Building on the long history of machine learning in forecasting macroeconomic variables\footnote{See e.g. ...} we use the Federal Reserve Bank's monthly database (FRED-MD) to apply the estimators discussed above on real data. This database was established for empirical analysis that requires 'big data' and hence constitutes an ideal environment to employ the methods discussed above. We took inspiration from the work of Coulombe et al. (2020) but limit ourselves to PC, Ridge, PLS and LF.\footnote{Unfortunately we were unable to use (1) Gu et al. (2020) as TSE does not have access to WDRS returns, (2) as only data on the resulting factors is available or (3) as they do not offer any replication data.} 
+Building on the long history of machine learning in forecasting macroeconomic variables\footnote{See e.g. ...} we use the Federal Reserve Bank's monthly database (FRED-MD) to apply the estimators discussed above on real data.\footnote{Unfortunately we were unable to use (1) Gu et al. (2020) as TSE does not have access to WDRS returns, (2) as only data on the resulting factors is available or (3) as they do not offer any replication data.} This database was established for empirical analysis that requires 'big data' and hence constitutes an ideal environment to employ the methods discussed above. We took inspiration from the work of Coulombe et al. (2020) but limit ourselves to PC, Ridge, PLS and LF. 
 The dataset contains 134 monthly US macroeconomic and financial indicators observed from January 1959 to January 2021. An overview of all variables is given in the appendix. 
 Following Coulombe et al. (2020) we predict three indicators which are of key economic interest, namely Industrial Production (INDPRO), Unemployment Rate (UNRATE), and housing starts (HOUST).\footnote{Fortunately McCracken and Ng (2016), the accompanying paper of the dataset, outlines a transformation method for each variable to achieve stationarity. We apply those transformations in our data preparation.}
 For each of these variables of interest $Y_t$ we follow Coulombe et al (2020) in defining the forecast objective as
 
-\begin{align}
+\begin{align*}
 	y_{t+h} = (1/h) ln(Y_{t+h}/Y_t)
-\end{align}
+\end{align*}
 
 where $h$ denotes the number of periods ahead. This allows us to assess the performance of our predictive methods for further periods ahead.
 Given the nature of the data we expect the underlying factor structure to be similar to DGP XXXXXXXXX 
 
 \subsection{Evaluation}
-We evaluate the performance of our methods on the out of sample MSE. To be able to compute the latter we split our data into a training and a test set where the former spans all observations from ... to ... amounting to 80\% of the data. Denoting $N$ the number of observations in the test set we calculate the MSE as
-\begin{align}
+We evaluate the performance of our methods on the out of sample MSE. To be able to compute this metric we split our data into a training and a test set where the former spans all observations from ... to ... amounting to 80\% of the data. Denoting $N$ the number of observations in the test set we calculate the MSE as
+\begin{align*}
 	    MSE = \frac{1}{N} \sum_{i=1}^N (Y_i - \widehat{Y}_i)^2
-\end{align}
-where $\widehat{Y}_i = \widehat{\Psi} \widehat{\delta}_{pc}$ for PCA and $\widehat{Y}_i = X \widehat{\delta}_{m}, m \in \{R, LF, PLS\}$ for all other models. 
+\end{align*}
+where $\widehat{Y}_i = \widehat{\Psi} \widehat{\delta}_{pc}$ for PCA and $\widehat{Y}_i = X_{test} \widehat{\delta}_{m}, m \in \{R, LF, PLS\}$ for all other models. 
 
-We conduct forecasts for $h = \{1, 3, 9\}$ periods ahead. In line with the findings of Coulombe et al (2020) we observe that the performance increases for further periods ahead. Given the simulation results we expect Ridge to deliver the best results, here defined as yielding the smallest out of sample MSE. Subsequently we report results similar to the simulation framework; we provide tables showing for each combination of estimator and parameter selection method the chosen penalty parameter/the number of factors as well as the degrees of freedom and the resulting out of sample MSE. Moreover, we visualize the out of sample MSE to ease comparison across methods and settings.
+We conduct forecasts for $h = \{1, 3, 9\}$ periods ahead. Given the simulation results we expect Ridge to deliver the best results, here defined as yielding the smallest out of sample MSE. Subsequently we report results similar to the simulation framework; we provide tables showing for each combination of estimator and parameter selection method the chosen penalty parameter/the number of factors as well as the degrees of freedom and the resulting out of sample MSE for $h=1$. Moreover, we visualize the out of sample MSE to ease comparison across methods and settings.
 
 \subsection{Results and Discussion}
-From tables \ref{tab::indpro} to \ref{tab::houst} we can immediately see that the estimated factor structure as well as the chosen penalty parameters are remarkably stable across both selection criteria and variables of interest. We were unable to discover evidence supporting nor disputing this finding in the literature related to the usage of FRED-MD.\footnote{We apply the same exact estimators as in the simulations hence we see room for error only in our data preparation steps, which are, however, directly taken from the literature. Given the nature of the data we might take this finding as an indication for a stable factor structure. Future research could discover interesting patterns.}
+From tables \ref{tab::indpro} to \ref{tab::houst} we can immediately see that the estimated factor structure as well as the chosen penalty parameters are remarkably stable across both selection criteria and variables of interest. We cautiously take this as indication for the underlying macro data to indeed exhibit a stable factor structure, i.e. that economic variables are driven by a set of common underlying factors. \cite{} The number of estimated factors ranges from 9 to 15 depending on the setting and choice of method, which is in line with the literature \cite{}.
 In terms of forecasting power, we can see that LF yields the smallest out of sample MSE for $h=1$ across all variables of interest. The difference to Ridge is, however, close to negligible. 
 
 \begin{table}[h!]
@@ -259,6 +310,9 @@ Ridge: Mallow & 0.008906 &   0.1170 & 20.052968 \\
 \end{tabular}
 \end{table}
 
+Comparing the performance across variables we make the interesting finding that the PLS performs very poorly when predicting $HOUST$. We therefore report for each time horizon also the subset of only $INDPRO$ and $UNRATE$ to increase readability. Generally PLS yields the highest out of sample MSE while Ridge and LF perform best. This is somewhat surprising as the simulation results did not indicate a similar pattern XXX CHECK THIS XXX. 
+In line with the findings of Coulombe et al (2020) we observe that the performance increases for further periods ahead.
+
 
 %\newcolumntype{M}[1]{>{\centering\arraybackslash}m{#1}}
 \begin{table}[]
@@ -272,20 +326,12 @@ Ridge: Mallow & 0.008906 &   0.1170 & 20.052968 \\
 
 \begin{table}[]
     \centering
-    \begin{tabular}{c}
-        \includegraphics[width=0.6\textwidth]{figures/MSE_oos_h3.png} \\
-        \includegraphics[width=0.6\textwidth]{figures/MSE_oos_h3_noHOUST.png}
+    \begin{tabular}{c c}
+        \includegraphics[width=0.5\textwidth]{figures/MSE_oos_h3.png} & \includegraphics[width=0.5\textwidth]{figures/MSE_oos_h9.png} \\
+        \includegraphics[width=0.5\textwidth]{figures/MSE_oos_h3_noHOUST.png} &
+        \includegraphics[width=0.5\textwidth]{figures/MSE_oos_h9_noHOUST.png} \\
+        Out of sample MSE, $h = 3$ & Out of sample MSE, $h = 9$
     \end{tabular}
-    \caption*{Out of sample MSE, $h = 3$}
-\end{table}
-
-\begin{table}[]
-    \centering
-    \begin{tabular}{c}
-        \includegraphics[width=0.6\textwidth]{figures/MSE_oos_h9.png} \\
-        \includegraphics[width=0.6\textwidth]{figures/MSE_oos_h9_noHOUST.png}
-    \end{tabular}
-    \caption*{Out of sample MSE, $h = 9$}
 \end{table}
 
 
