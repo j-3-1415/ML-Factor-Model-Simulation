@@ -53,24 +53,29 @@
 
 \newpage
 
-\section{Introduction}
+\section{Factor Model Context}
 
-Four dimension reduction devices: (1) Principal Component Analysis, (2) Ridge Regression, (3) Landweber Fridman (LF) regularization, (4) Partial least squares. Each involves a regularization or tuning parameter that is selected through genearlized cross validation (GCV). 
+Factor models attempt to explain panels of data in terms of a smaller number of common factors that apply to each of the variables in the dataset. In the case of high dimensional data, factor models are necesssary in order to reduce the dimensionality of the dataset, making estimation possible where the dataset would have been rank deficient before. A factor model on panel data can be represented as:
 
-Take two different data generating processes, (1) The eigenvalues of $\frac{X^{'}X}{T}$ are bounded and decline to zero gradually. (2) Popular factor model with a finite number, r, of factors. Here, the r largest eigenvalues grow with N, while the remaining are bounded. In both cases, $\frac{X^{'}X}{T}$ is ill-conditioned, which means the ratio of the largest to smallest eigenvalue diverges, and a regularization terms is needed to invert the matrix.
+\[\underbrace{X}_{(T \times N)} = \underbrace{F}_{(T \times r)} \underbrace{\Lambda^{'}}_{(r \times N)} + \underbrace{\xi}_{(T \times N)}\]
+
+Additionally, through dimensionality reduction, factor models can find the most important variables that effect the outcome variables.
+
+For factor models in general, a crucial part of the estimation procedure is determining the number of factors to use. This is the context that \cite{carrasco2016sample} is set in. The parameter used to select the number of factors in a factor model is also known as the regularization parameter. \cite{carrasco2016sample} run simulations to analyze four different dimension reduction devices: (1) Principal Component Analysis, (2) Ridge Regression, (3) Landweber Fridman (LF) regularization, (4) Partial least squares. Each involves a regularization or tuning parameter that is selected through generalized cross validation (GCV). 
+
+% Take two different data generating processes, (1) The eigenvalues of $\frac{X^{'}X}{T}$ are bounded and decline to zero gradually. (2) Popular factor model with a finite number, r, of factors. Here, the r largest eigenvalues grow with N, while the remaining are bounded. In both cases, $\frac{X^{'}X}{T}$ is ill-conditioned, which means the ratio of the largest to smallest eigenvalue diverges, and a regularization terms is needed to invert the matrix.
 
 \section{Data Generating Process}
 
-Large Sample Case: $N = 200$ and $T = 500$
-Small Sample Case: $N = 100$ and $T = 50$
+To study how accurate each estimation method is, \cite{carrasco2016sample} simulate six different Data Generating processes, both in the large and small sample cases. In the large sample case, the size of the data set is $N = 200$ and $T = 500$. In the small sample case, the size is $N = 100$ and $T = 50$
 
-\[\underbrace{x_{t}}_{(N \times 1)} = \underbrace{\Lambda}_{(N \times r)} \underbrace{F_{t}}_{(r \times 1)} + \underbrace{\xi_{t}}_{(N \times 1)}\]
+% \[\underbrace{x_{t}}_{(N \times 1)} = \underbrace{\Lambda}_{(N \times r)} \underbrace{F_{t}}_{(r \times 1)} + \underbrace{\xi_{t}}_{(N \times 1)}\]
 
-\[\underbrace{y_{t}}_{(1 \times 1)} = \underbrace{\theta^{'}}_{(1 \times r)} \underbrace{F_{t}}_{(r \times 1)} + \underbrace{\nu_{t}}_{(1 \times 1)}\]
+% \[\underbrace{y_{t}}_{(1 \times 1)} = \underbrace{\theta^{'}}_{(1 \times r)} \underbrace{F_{t}}_{(r \times 1)} + \underbrace{\nu_{t}}_{(1 \times 1)}\]
 
-\[\underbrace{y}_{(T \times 1)} = \underbrace{F}_{(T \times r)} \underbrace{\theta}_{(r \times 1)} + \underbrace{\nu}_{(T \times 1)}\]
+% \[\underbrace{y}_{(T \times 1)} = \underbrace{F}_{(T \times r)} \underbrace{\theta}_{(r \times 1)} + \underbrace{\nu}_{(T \times 1)}\]
 
-\[\underbrace{X}_{(T \times N)} = \underbrace{F}_{(T \times r)} \underbrace{\Lambda^{'}}_{(r \times N)} + \underbrace{\xi}_{(T \times N)}\]
+% \[\underbrace{X}_{(T \times N)} = \underbrace{F}_{(T \times r)} \underbrace{\Lambda^{'}}_{(r \times N)} + \underbrace{\xi}_{(T \times N)}\]
 
 DGP 1 (Few Factors Structure):
 $\theta$ is the $(r \times 1)$ vector of ones, $r = 4$ and $r_{max} = r + 10$
@@ -101,20 +106,14 @@ DGP 6 (Near Factor Model):
 
 $\theta = 1$, $r = 1$, $r_{max} = r + 10$, $\Lambda^{'} = \frac{1}{\sqrt{N}}1_{r \times N}$
 
-
-Estimation:
-
-Set 1: Bai-Ng, PCA, PLS, Ridge, LF, LASSO
-Set 2: GCV, Mallows, AIC, BIC
-Set 3: Small Sample, Large Sample
-
-Parameter Iteration (For Later)
-Simulation (Andy)
-Model Estimation (Jacob)
-Evaluation (Jacob)
-Output (Andy)
-
 \section{Estimation Methods}
+
+\subsection{Notation}
+
+\[S_{xx} = \frac{X^{T} X}{T} \]
+\[S_{xy} = \frac{X^{T} y}{T} \]
+\[M_{T}^{\alpha} \text{ is the projection matrix of y onto the factors of X}\]
+\[\hat{\psi}_{j} \text{ is the } j^{th} \text{ orthonormalized eigenvector of } \frac{X X^{T}}{T}\]
 
 Ridge Estimator:
 
@@ -165,6 +164,8 @@ So variance of $\epsilon$ is taken from the errors of the largest model, or from
 Leave-one-out Cross Validation:
 
 \[\hat{\alpha}=\arg \min _{\alpha \in A_{T}} \frac{1}{T} \sum_{t=1}^{T}\left(\frac{y_{i}-\hat{y}_{i, \alpha}}{1-M_{T}^{\alpha}[ii]}\right)^{2}\]
+
+\section{Simulation Results}
 
 \input{Table_N100_T50_EvalGCV_Sims1000}
 \input{Table_N100_T50_EvalMallow_Sims1000}
