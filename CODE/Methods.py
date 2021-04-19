@@ -321,12 +321,12 @@ def gen_tex_dict(tex_params):
 	return(tex_dict, cv_time)
 
 for N, T in [(200, 500)]:
-	for method in ['GCV', 'Mallow']:
+	for method in ['Mallow']:
 
 		tex_params = {
 			'N': N,
 			'T': T,
-			'sims': 1000,
+			'sims': 50,
 			'method': method,
 			'models' : ['PC', 'PLS', 'Ridge', 'LF']
 			# 'models' : ['Ridge']
