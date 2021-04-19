@@ -333,7 +333,7 @@ for N, T in [(200, 500)]:
 		}
 
 		file = "Table_N%s_T%s_Eval%s_Sims%s.tex"%(N, T, method, tex_params['sims'])
-		file = os.path.abspath("..") + "/Report/" + file
+		file = os.path.abspath("..") + "/machinelearning/Report/" + file
 		tex_dict, cv_time = gen_tex_dict(tex_params)
 		tex_string = out_latex(file, tex_dict)
 

@@ -242,6 +242,7 @@ Note that for PC and PLS, the trace of $M_{T}^{\alpha}$ is equal to the number o
 We run simulations of the six DGPs outlined in section \ref{sec::dgp} for a small sample $(N = 100, T = 50)$ and a large sample $(N=200, T=500)$ and apply all estimators discussed in section \ref{sec::estimators} with $\alpha$/$k$ selected from either GCV or Mallow's Criterion. In the subsequent tables $r$ denotes the true number of factors in the underlying simulation. $k$ is the average estimated number of factors across simulations and equivalently $\alpha$ is the average penalty parameter across simulations.
 
 \input{Table_N200_T500_EvalGCV_Sims1000}
+\input{Table_N200_T500_EvalMallow_Sims50}
 
 In general, we obtain similar results as \citeauthor{carrasco2016sample} for PC and PLS even though our methodology for the latter departs slightly from their paper. For Ridge and LF the results are mixed. We tried all of the authors expressions for Ridge and while the implemented one (see section \ref{sec::ridge}) yields sensible results they do not match with the values the authors report. Similarly when judging the LF estimator on the degrees of freedoms used we also fail at replicating the results exactly. Given that we directly translated the authors formulas into code we are unsure where this error arises from. We take the performance of PC and PLS as indication that both the DGPs and the regularization choice were implemented correctly. 
 
@@ -289,6 +290,8 @@ From these simulations we can derive key insights for the subsequent empirical a
 	\item In terms of forecasting performance the simulations indicate that PLS consistently returns the smallest in-sample MSE whereas LF performs worst.
 	\item We do not expect to see pronounced differences in forecasting performance between PC and Ridge. 
 \end{itemize}
+
+\clearpage
 
 \section{Empirical Application}
 \subsection{Introduction and Data}
