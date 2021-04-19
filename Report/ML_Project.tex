@@ -54,7 +54,7 @@
 \newpage
 
 \section{Introduction}
-This report discusses and presents a replication of a selection of findings from \citeauthor{carrasco2016sample} as well as an empirical application of the methods covered. \citeauthor{carrasco2016sample} discusses in-sample prediction and out-of-sample forecasting in regressions with many exogenous predictors based on four dimension-reduction devices: principal components (PCA), ridge, Landweber Fridman (LF), and partial least squares (PLS). Each involves a regularization or tuning parameter that is selected through generalized cross validation (GCV) or Mallows Cp. Following \citeauthor{carrasco2016sample} we evaluate these estimators in a monte carlo simulation framework with 6 different data generating processes (DGP). 
+This report discusses and presents a replication of a selection of findings from \citeauthor{carrasco2016sample} as well as an empirical application of the methods. \citeauthor{carrasco2016sample} discusses in-sample prediction and out-of-sample forecasting in regressions with many exogenous predictors based on four dimension-reduction devices: principal components (PCA), ridge, Landweber Fridman (LF), and partial least squares (PLS). Each involves a regularization or tuning parameter that is selected through generalized cross validation (GCV) or Mallows Cp. Following \citeauthor{carrasco2016sample} we evaluate these estimators in a monte carlo simulation framework with 6 different data generating processes (DGPs). 
 
 \section{Factor Models in Economics}
 
@@ -136,10 +136,11 @@ x_{T}^{\prime}
 
 
 where $y$ is a $(T \times 1)$ vector, $X$ is a $(T \times N)$ matrix of predictors and $\varepsilon$ is a $(T \times 1)$ vector. We then write 
-\[S_{xx} = \frac{X^{T} X}{T} \quad \text{ and } \quad S_{xy} = \frac{X^{T} y}{T} \]
+\[S_{xx} = \frac{X^{T} X}{T} \quad \text{, } \quad S_{xy} = \frac{X^{T} y}{T} \]
+and 
 \[\widehat{y} = M_{T}^{\alpha} y = X \widehat{\delta}^{\alpha}\]
 
-Additionally, the degrees of freedom (DOF) for each estimator is calculated as the trace of $M_{T}^{\alpha}$. For PC and PLS, the trace of $M_{T}^{\alpha}$ is equal to the number of factors $k$. Moreover we denote as $\alpha$ the choice of penalty parameter which is obtained from one of the selection methods discussed in section \ref{sec::cv}.
+Moreover we denote as $\alpha$ the choice of penalty parameter which is obtained from one of the selection methods discussed in section \ref{sec::cv}.
 
 For some of the estimators, we need to calculate the matrix of eigenvectors of X. Given that X is a non-square matrix in both the large and small sample cases, we decided to decompose X using the singular value decomposition (SVD). The SVD of X is represented as:
 
@@ -147,9 +148,9 @@ For some of the estimators, we need to calculate the matrix of eigenvectors of X
 
 From this decomposition, we have that $U$ is the $T \times T$ matrix of orthonormalized eigenvectors of $\frac{X X^{T}}{T}$, sorted in descending order of each vectors' eigenvalues. $V^{T}$ is the matrix of orthonormalized eigenvectors of $\frac{X^{T} X}{T}$. Lastly, the diagonal of $\Sigma$ is the vector of the square root of the eigenvalues of $\frac{X^{T} X}{T}$.
 
-In the notation of the \citeauthor{carrasco2016sample} paper, $U = \hat{\psi}$ and $diag(\Sigma)^{2} = \lambda^{2}$.
+In the of \citeauthor{carrasco2016sample}, $U = \hat{\psi}$ and $diag(\Sigma)^{2} = \lambda^{2}$.
 
-\subsection{Estimators}
+\subsection{Estimators} \label{sec::estimators}
 
 \citeauthor{carrasco2016sample} specify multiple different expressions for each of their four estimation methods. We implemented each formulation of the method to check for accuracy and computational efficiency. We unfortunately found that for some of the estimation methods, the results were not consistent between the different formulations. Additionally, where possible, we vectorized the matrix sums to improve computation time. Lastly, no matter the formulation, for some of the estimators, we were not able to get the regularization parameters to agree exactly with the tables in the paper by \citeauthor{carrasco2016sample}.
 
@@ -165,7 +166,7 @@ For this estimator, the implementation we use is:
 
 As explained in the Notation section, $\hat{\Psi}$ is estimated from the singular value decomposition of $X$. The number of vectors $k$ included in $\hat{\Psi}$ is the regularization parameter that is optimized for the PC method. We decided to use this implementation as it was the most straightforward, agreed with the results from \citeauthor{carrasco2016sample}, and was fully vectorized.
 
-\subsubsection{Ridge Estimator}
+\subsubsection{Ridge Estimator} \label{sec::ridge}
 
 For the ridge estimator, the implementation we use is:
 
@@ -183,9 +184,9 @@ However, this implementation yielded estimation results that were further away f
 For the LF estimator, we implemented:
 
 \[\widehat{y} = M_{T}^{\alpha} y = X \hat{\delta}_{LF}^{\alpha} = X \sum_{j=1}^{\min (N, T)} \frac{\left(1-\left(1-d \widehat{\lambda}_{j}^{2}\right)^{1 / \alpha}\right)}{\widehat{\lambda}_{j}^{2}}\left\langle y, \hat{\psi}_{j}\right\rangle_{T} \frac{X^{\prime} \hat{\psi}_{j}}{T}\]
-Here $d$ denotes XXXX. We follow \citeauthor{carrasco2016sample} and choose $d = 0.018/max(\lambda^2)$. XXXXX WHAT IS NOW LAMBDA SQ AGAIN XXXX.
+Here $d$ denotes XXXX. We follow \citeauthor{carrasco2016sample} and choose $d = 0.018/max(\lambda^2)$.
 
-With the LF estimator, the $\alpha$ values reported by \citeauthor{carrasco2016sample} were mostly indistiguishable from 0, so it was difficult to verify that we were implementing it correctly. However our values for the DOF of the LF estimator were not exactly as reported, but there was no other implementation to try.
+With the LF estimator, the $\alpha$ values reported by \citeauthor{carrasco2016sample} were mostly indistiguishable from 0, so it was difficult to verify that we were implementing it correctly. However our values for the degrees of freedom (DOF) of the LF estimator were not exactly as reported, but there was no other implementation to try.
 
 \subsubsection{Partial Least Squares (PLS) Estimator}
 
@@ -216,86 +217,97 @@ As outlined above the choice of regularization parameter is crucial. We hence im
 	\item Generalized Cross Validation (GCV): \\
 \[\hat{\alpha}=\arg \min _{\alpha \in A_{T}} \frac{T^{-1}\left\|y-M_{T}^{\alpha} y\right\|^{2}}{\left(1-T^{-1} \operatorname{tr}\left(M_{T}^{\alpha}\right)\right)^{2}}\]
 
-	\item Mallows' Criterion: \\
+	\item Mallow's Criterion: \\
 \[\hat{\alpha}=\arg \min _{\alpha \in A_{T}} T^{-1}\left\|y-M_{T}^{\alpha} y\right\|^{2}+2 \widehat{\sigma}_{\varepsilon}^{2} T^{-1} \operatorname{tr}\left(M_{T}^{\alpha}\right)\]
 where $\widehat{\sigma}_{\epsilon}^{2}$ is a consistent estimator of the variance of $\epsilon$. In practice this translates to the variance of $\epsilon$ being taken from the errors of the largest model, or from the model with all regressors in the case of PCA.
 
 	\item Leave-one-out Cross Validation (LOO-CV): \\
 \[\hat{\alpha}=\arg \min _{\alpha \in A_{T}} \frac{1}{T} \sum_{t=1}^{T}\left(\frac{y_{i}-\hat{y}_{i, \alpha}}{1-M_{T}^{\alpha}[ii]}\right)^{2}\]
 
-% XXX Can we rewrite the predicted values as the usual Mty? XXX
 \end{itemize}
 
-Note that for PC and PLS $\operatorname{tr}\left(M_{T}^{\alpha}\right) = k$, i.e. the number of factors. For the Ridge and LF estimators, the trace of $M_{t}$ is equivalent to the degrees of freedom. Moreover, we only use LOO-CV for PLS.
+Note that for PC and PLS, the trace of $M_{T}^{\alpha}$ is equal to the number of factors $k$. Additionally, the degrees of freedom (DOF) for each estimator is calculated as the trace of $M_{T}^{\alpha}$. 
 
 \section{Simulation Results}
 
-We run simulations of the six DGPs outlined in section \ref{sec::dgp} for a small sample $(N = 100, T = 50)$ and a large sample $(N=200, T=500)$. Due to computational limitations we only ran 25 simulations for each of the DGPs in the large sample.\footnote{For the small sample our personal machines provided sufficient computing power to execute 1000 simulations per DGP.}
-
-XXXX DISCUSSION OF FINDINGS XXXX
+We run simulations of the six DGPs outlined in section \ref{sec::dgp} for a small sample $(N = 100, T = 50)$ and a large sample $(N=200, T=500)$ and apply all estimators discussed in section \ref{sec::estimators} with $alpha$/$k$ selected from either GCV or Mallow's Criterion. In the subsequent tables $r$ denotes the true number of factors in the underlying simulation. $k$ is the average estimated number of factors across simulations and equivalently $\alpha$ is the average penalty parameter across simulations.
 
 \input{Table_N200_T500_EvalGCV_Sims1000}
+
+In general, we obtain similar results as \citeauthor{carrasco2016sample} for PC and PLS even though our methodology for the latter departs slightly from their paper. For Ridge and LF the results are mixed. We tried all of the authors expressions for Ridge and while the implemented one (see section \ref{sec::ridge}) yields sensible results they do not match with the values the authors report. Similarly when judging the LF estimator on the degrees of freedoms used we also fail at replicating the results exactly. Given that we directly translated the authors formulas into code we are unsure where this error arises from. We take the performance of PC and PLS as indication that both the DGPs and the regularization choice were implemented correctly. 
+
+Generally our findings are in line with \citeauthor{carrasco2016sample}. We see that PC with GCV correctly estimates the number of factors  in both cases where the number of factors is either large or small (DGP 1 and DGP 2). The performance is better in the large sample. Contrarily Mallows' Criterion tends to overestimate the number of factors when the true number of factors is small (DGP 1, DGP 3, DGP 4 and DGP 6). When the number of factors is small but only one factor is a relevant predictor of $y_t$ (DGP 3) GCV slightly overestimates the number of relevant factors. Here again Mallows' Criterion performs worse and heavily overestimates the number of relevant factors. When eigenvalues decline gradually (DGP 5) GCV yields a small number of relevant factors both in the large sample and in the small sample case. Mallow again estimates a greater number of factors. Lastly, in DGP 6, where the eigenvalues are small in magnitude, both GCV and Mallows Criterion overestimate the number of relevant factors. 
+
 \input{Table_N100_T50_EvalGCV_Sims1000}
 \input{Table_N100_T50_EvalMallow_Sims1000}
 
-% \begin{table}[h! ]
-%     \centering
-%     \caption*{N = 100, T=50, Simulations = 1000}
-%     \begin{tabular}{c c}
-%     DGP 1 & DGP 2 \\
-%         \includegraphics[width=0.5\textwidth]{figures/N100_T50_DGP1_Sims1000.png} & \includegraphics[width=0.5\textwidth]{figures/N100_T50_DGP2_Sims1000.png} \\
-%         DGP 3 & DGP 4 \\
-%         \includegraphics[width=0.5\textwidth]{figures/N100_T50_DGP3_Sims1000} &
-%         \includegraphics[width=0.5\textwidth]{figures/N100_T50_DGP4_Sims1000} \\
-%         DGP 5 & DGP 6 \\
-%         \includegraphics[width=0.5\textwidth]{figures/N100_T50_DGP5_Sims1000} &
-%         \includegraphics[width=0.5\textwidth]{figures/N100_T50_DGP6_Sims1000}
-%     \end{tabular}
-% \end{table}
+Moving to the predictive power of our estimators we plot the in-sample MSE for all cases discussed above.\footnote{Due to computational limitations we limit the number of simulations for the large sample to 25.} This setting also allows to evaluate the performance of Ridge and LF. We can see that LF consistently performs worst in terms of in-sample MSE and that this behaviour is especially pronounced for DGP 1, DGP 2 and DGP 3. Contrarily, PLS yields a comparably small in-sample MSE across all DGPs and performs especially well when eigenvalues are small in magnitude. Ridge and PC perform similarly across all DGPs. 
 
-% \begin{table}[h! ]
-%     \centering
-%     \caption*{N = 200, T=500, Simulations = 25}
-%     \begin{tabular}{c c}
-%     DGP 1 & DGP 2 \\
-%         \includegraphics[width=0.5\textwidth]{figures/N200_T500_DGP1_Sims25.png} & \includegraphics[width=0.5\textwidth]{figures/N200_T500_DGP2_Sims25.png} \\
-%         DGP 3 & DGP 4 \\
-%         \includegraphics[width=0.5\textwidth]{figures/N200_T500_DGP3_Sims25} &
-%         \includegraphics[width=0.5\textwidth]{figures/N200_T500_DGP4_Sims25} \\
-%         DGP 5 & DGP 6 \\
-%         \includegraphics[width=0.5\textwidth]{figures/N200_T500_DGP5_Sims25} &
-%         \includegraphics[width=0.5\textwidth]{figures/N200_T500_DGP6_Sims25}
-%     \end{tabular}
-% \end{table}
+\begin{table}[h! ]
+     \centering
+     \caption*{N = 100, T=50, Simulations = 1000}
+     \begin{tabular}{c c}
+     DGP 1 & DGP 2 \\
+         \includegraphics[width=0.45\textwidth]{figures/N100_T50_DGP1_Sims1000.png} & \includegraphics[width=0.45\textwidth]{figures/N100_T50_DGP2_Sims1000.png} \\
+                 DGP 3 & DGP 4 \\
+         \includegraphics[width=0.45\textwidth]{figures/N100_T50_DGP3_Sims1000} &
+         \includegraphics[width=0.45\textwidth]{figures/N100_T50_DGP4_Sims1000} \\
+         DGP 5 & DGP 6 \\
+         \includegraphics[width=0.45\textwidth]{figures/N100_T50_DGP5_Sims1000} &
+         \includegraphics[width=0.45\textwidth]{figures/N100_T50_DGP6_Sims1000}
+     \end{tabular}
+\end{table}
 
-\clearpage
+\begin{table}[h! ]
+    \centering
+    \caption*{N = 200, T=500, Simulations = 25}
+    \begin{tabular}{c c}
+    DGP 1 & DGP 2 \\
+        \includegraphics[width=0.45\textwidth]{figures/N200_T500_DGP1_Sims25.png} & \includegraphics[width=0.45\textwidth]{figures/N200_T500_DGP2_Sims25.png} \\
+        DGP 3 & DGP 4 \\
+        \includegraphics[width=0.45\textwidth]{figures/N200_T500_DGP3_Sims25} &
+        \includegraphics[width=0.45\textwidth]{figures/N200_T500_DGP4_Sims25} \\
+        DGP 5 & DGP 6 \\
+        \includegraphics[width=0.45\textwidth]{figures/N200_T500_DGP5_Sims25} &
+        \includegraphics[width=0.45\textwidth]{figures/N200_T500_DGP6_Sims25}
+    \end{tabular}
+\end{table}
+
+From these simulations we can derive key insights for the subsequent empirical application. 
+\begin{itemize}
+	\item If the underlying factor structure is few factors we expect PC with GCV to yield good estimates of the true number of factors. 
+	\item We expect to over-estimate the number of factors when using Mallows' Criterion.
+	\item In terms of forecasting performance the simulations indicate that PLS consistently returns the smallest in-sample MSE whereas LF performs worst.
+	\item We do not expect to see pronounced differences in forecasting performance between PC and Ridge. 
+\end{itemize}
 
 \section{Empirical Application}
 \subsection{Introduction and Data}
-Building on the long history of machine learning in forecasting macroeconomic variables\footnote{See e.g. ...} we use the Federal Reserve Bank's monthly database (FRED-MD) to apply the estimators discussed above on real data.\footnote{Unfortunately we were unable to use (1) Gu et al. (2020) as TSE does not have access to WDRS returns, (2) as only data on the resulting factors is available or (3) as they do not offer any replication data.} This database was established for empirical analysis that requires 'big data' and hence constitutes an ideal environment to employ the methods discussed above. We took inspiration from the work of Coulombe et al. (2020) but limit ourselves to PC, Ridge, PLS and LF. 
+Building on the long history of machine learning in forecasting macroeconomic variables\footnote{See e.g. \cite{swanson1997model}, \cite{stock1998comparison} or \cite{stock2002macroeconomic}.} we use the Federal Reserve Bank's monthly database (FRED-MD) to apply the estimators discussed above on real data.\footnote{Unfortunately we were unable to use (1) \cite{gu2020empirical} as TSE does not have access to WDRS returns, (2) \cite{ludvigson2009macro} as only data on the resulting factors is available or (3) \cite{stock2002macroeconomic} as they do not offer any replication data.} This database was established for empirical analysis that requires 'big data' and hence constitutes an ideal environment to employ the methods discussed above. We took inspiration from the work of \citeauthor{coulombe2020machine} but limit ourselves to PC, Ridge, PLS and LF. 
 The dataset contains 134 monthly US macroeconomic and financial indicators observed from January 1959 to January 2021. An overview of all variables is given in the appendix. 
-Following Coulombe et al. (2020) we predict three indicators which are of key economic interest, namely Industrial Production (INDPRO), Unemployment Rate (UNRATE), and housing starts (HOUST).\footnote{Fortunately McCracken and Ng (2016), the accompanying paper of the dataset, outlines a transformation method for each variable to achieve stationarity. We apply those transformations in our data preparation.}
-For each of these variables of interest $Y_t$ we follow Coulombe et al (2020) in defining the forecast objective as
+Following \citeauthor{coulombe2020machine} we predict three indicators which are of key economic interest, namely Industrial Production (INDPRO), Unemployment Rate (UNRATE), and housing starts (HOUST).\footnote{Fortunately \cite{mccracken2016fred}, the accompanying paper of the dataset, outlines a transformation method for each variable to achieve stationarity. We apply those transformations in our data preparation.}
+For each of these variables of interest $Y_t$ we follow \citeauthor{coulombe2020machine} in defining the forecast objective as
 
 \begin{align*}
 	y_{t+h} = (1/h) ln(Y_{t+h}/Y_t)
 \end{align*}
 
-where $h$ denotes the number of periods ahead. This allows us to assess the performance of our predictive methods for further periods ahead.
-Given the nature of the data we expect the underlying factor structure to be similar to DGP XXXXXXXXX 
+where $h$ denotes the number of periods ahead.  Given that $Y_t$ has been transformed to be $I(1)$\footnote{See \cite{mccracken2016fred} for details.}, this translates to forecasting the average growth rate over the period $[t + 1, t + h]$ \parencite{stock2002macroeconomic}. This allows us to assess the performance of our predictive methods for further periods ahead.
+Given the nature of the data we expect the underlying factor structure to be similar to DGP 1, i.e. few factors. \parencite{mccracken2016fred} If this assumption holds true we expect PC with GCV to correctly estimate the number of factors. 
 
 \subsection{Evaluation}
-We evaluate the performance of our methods on the out of sample MSE. To be able to compute this metric we split our data into a training and a test set where the former spans all observations from ... to ... amounting to 80\% of the data. Denoting $N$ the number of observations in the test set we calculate the MSE as
+We evaluate the performance of our methods on the out of sample MSE. To be able to compute this metric we split our data into a training and a test set where the former spans all observations from January 1959 to May 2008 amounting to 80\% of the data.\footnote{We found the results to be robust for training sizes between 0.6 and 0.9 (not reported), hence we see the cutoff amid the great recession as not problematic.} Denoting $N$ the number of observations in the test set we calculate the out of sample MSE as
 \begin{align*}
 	    MSE = \frac{1}{N} \sum_{i=1}^N (Y_i - \widehat{Y}_i)^2
 \end{align*}
 where $\widehat{Y}_i = \widehat{\Psi} \widehat{\delta}_{pc}$ for PCA and $\widehat{Y}_i = X_{test} \widehat{\delta}_{m}, m \in \{R, LF, PLS\}$ for all other models. 
 
-We conduct forecasts for $h = \{1, 3, 9\}$ periods ahead. Given the simulation results we expect Ridge to deliver the best results, here defined as yielding the smallest out of sample MSE. Subsequently we report results similar to the simulation framework; we provide tables showing for each combination of estimator and parameter selection method the chosen penalty parameter/the number of factors as well as the degrees of freedom and the resulting out of sample MSE for $h=1$. Moreover, we visualize the out of sample MSE to ease comparison across methods and settings.
+We conduct forecasts for $h = \{1, 3, 9\}$ periods ahead. Subsequently we report results similar to the simulation framework; we provide tables showing for each combination of estimator and parameter selection method the estimated penalty parameter/the number of factors as well as the degrees of freedom and the resulting out of sample MSE for $h=1$. Moreover, we visualize the out of sample MSE to ease comparison across methods and settings.
 
 \subsection{Results and Discussion}
-From tables \ref{tab::indpro} to \ref{tab::houst} we can immediately see that the estimated factor structure as well as the chosen penalty parameters are remarkably stable across both selection criteria and variables of interest. We cautiously take this as indication for the underlying macro data to indeed exhibit a stable factor structure, i.e. that economic variables are driven by a set of common underlying factors. \citeauthor{} The number of estimated factors ranges from 9 to 15 depending on the setting and choice of method, which is in line with the literature \citeauthor{}.
-In terms of forecasting power, we can see that LF yields the smallest out of sample MSE for $h=1$ across all variables of interest. The difference to Ridge is, however, close to negligible. 
+From tables \ref{tab::indpro} to \ref{tab::houst} we can immediately see that the estimated factor structure as well as the chosen penalty parameters are remarkably stable across both selection criteria and variables of interest. We cautiously take this as indication for the underlying macro data to indeed exhibit a stable factor structure, i.e. that economic variables are driven by a set of common underlying factors. \parencite{mccracken2016fred} The number of estimated factors ranges from 9 to 15 depending on the setting and choice of method, which is in line with the literature. \parencite{mccracken2016fred}
+Moreover, we can see that Mallows' Criterion again estimates a larger number of factors than GCV, which is exactly the behaviour we expected from the simulation results. 
+In terms of forecasting power, we can see that LF yields the smallest out of sample MSE for $h=1$ across all variables of interest. This is somewhat surprising given its poor performance in the simulation framework when evaluated on the in-sample MSE. \citeauthor{carrasco2016sample} note, however, that its out-of-sample forecasting power is high, which validates our findings. Still, the difference to Ridge is close to negligible. 
 
 \begin{table}[h!]
 \centering
@@ -357,12 +369,13 @@ Ridge: Mallow & 0.008906 &   0.1170 & 20.052968 \\
 \end{tabular}
 \end{table}
 
-Comparing the performance across variables we make the interesting finding that the PLS performs very poorly when predicting $HOUST$. We therefore report for each time horizon also the subset of only $INDPRO$ and $UNRATE$ to increase readability. Generally PLS yields the highest out of sample MSE while Ridge and LF perform best. This is somewhat surprising as the simulation results did not indicate a similar pattern XXX CHECK THIS XXX. 
-In line with the findings of Coulombe et al (2020) we observe that the performance increases for further periods ahead.
+Comparing the performance across variables we make the interesting finding that the PLS performs very poorly when predicting $HOUST$. We therefore report for each time horizon also the subset of only $INDPRO$ and $UNRATE$ to increase readability. Generally PLS yields the highest out of sample MSE while Ridge and LF perform best. This pattern was not present in the evaluation of simulation results, hence investigating this further, also with respect to the empirical context, might yield interesting insights. This is, however, out of scope of this report.
+
+In line with the findings of \citeauthor{coulombe2020machine} we observe that the performance increases for further periods ahead. This finding holds true for all estimators and all variables of interest. 
 
 
 %\newcolumntype{M}[1]{>{\centering\arraybackslash}m{#1}}
-\begin{table}[]
+\begin{table}[h!]
     \centering
     \begin{tabular}{c}
         \includegraphics[width=0.6\textwidth]{figures/MSE_oos_h1.png} \\
@@ -371,16 +384,20 @@ In line with the findings of Coulombe et al (2020) we observe that the performan
     \caption*{Out of sample MSE, $h = 1$}
 \end{table}
 
-\begin{table}[]
+\clearpage
+
+\begin{table}[h!]
     \centering
     \begin{tabular}{c c}
-        \includegraphics[width=0.5\textwidth]{figures/MSE_oos_h3.png} & \includegraphics[width=0.5\textwidth]{figures/MSE_oos_h9.png} \\
-        \includegraphics[width=0.5\textwidth]{figures/MSE_oos_h3_noHOUST.png} &
-        \includegraphics[width=0.5\textwidth]{figures/MSE_oos_h9_noHOUST.png} \\
+        \includegraphics[width=0.4\textwidth]{figures/MSE_oos_h3.png} & \includegraphics[width=0.4\textwidth]{figures/MSE_oos_h9.png} \\
+        \includegraphics[width=0.4\textwidth]{figures/MSE_oos_h3_noHOUST.png} &
+        \includegraphics[width=0.4\textwidth]{figures/MSE_oos_h9_noHOUST.png} \\
         Out of sample MSE, $h = 3$ & Out of sample MSE, $h = 9$
     \end{tabular}
 \end{table}
 
+\section{Conclusion}
+For this report we implemented four dimension-reduction devices (PC, PLS, Ridge and LF) and evaluated their performance in a simulation framework and on real data. From the simulation framework we found, in line with \citeauthor{carrasco2016sample}, that PC with GCV correctly estimates the number of factors when the true number of factors is small. In conjunction with the literature on macroeconomic forecasting we were able to use this insight to evaluate estimated number of factors from real world data more cautiously. In this sense, this report can provide guidance in selecting the appropriate dimension-reduction device depending on the empirical context the research question is situated in. 
 
 \clearpage 
 
