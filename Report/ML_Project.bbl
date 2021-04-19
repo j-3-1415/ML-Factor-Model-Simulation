@@ -16,5 +16,110 @@
   {}
 \endgroup
 
+
+\refsection{0}
+  \datalist[entry]{nty/global//global/global}
+    \entry{bai2002determining}{article}{}
+      \name{author}{2}{}{%
+        {{hash=0dc94d98f7e1729d400a45f4d532e4a4}{%
+           family={Bai},
+           familyi={B\bibinitperiod},
+           given={Jushan},
+           giveni={J\bibinitperiod}}}%
+        {{hash=3d9598cb5e0ac67e52bb26096e0fd043}{%
+           family={Ng},
+           familyi={N\bibinitperiod},
+           given={Serena},
+           giveni={S\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Wiley Online Library}%
+      }
+      \strng{namehash}{feda9ccfe432a161b59f18da98f3b0f1}
+      \strng{fullhash}{feda9ccfe432a161b59f18da98f3b0f1}
+      \strng{bibnamehash}{feda9ccfe432a161b59f18da98f3b0f1}
+      \strng{authorbibnamehash}{feda9ccfe432a161b59f18da98f3b0f1}
+      \strng{authornamehash}{feda9ccfe432a161b59f18da98f3b0f1}
+      \strng{authorfullhash}{feda9ccfe432a161b59f18da98f3b0f1}
+      \field{sortinit}{B}
+      \field{sortinithash}{276475738cc058478c1677046f857703}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Econometrica}
+      \field{number}{1}
+      \field{title}{Determining the number of factors in approximate factor models}
+      \field{volume}{70}
+      \field{year}{2002}
+      \true{nocite}
+      \field{pages}{191\bibrangedash 221}
+      \range{pages}{31}
+    \endentry
+    \entry{carrasco2016sample}{article}{}
+      \name{author}{2}{}{%
+        {{hash=a35d1fb4461f66bfbd032f6e90ad7bea}{%
+           family={Carrasco},
+           familyi={C\bibinitperiod},
+           given={Marine},
+           giveni={M\bibinitperiod}}}%
+        {{hash=18357ef23d1269528ca662e5882a9d01}{%
+           family={Rossi},
+           familyi={R\bibinitperiod},
+           given={Barbara},
+           giveni={B\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Taylor \& Francis}%
+      }
+      \strng{namehash}{2b942fc12476aaed63dd4782f37a5d23}
+      \strng{fullhash}{2b942fc12476aaed63dd4782f37a5d23}
+      \strng{bibnamehash}{2b942fc12476aaed63dd4782f37a5d23}
+      \strng{authorbibnamehash}{2b942fc12476aaed63dd4782f37a5d23}
+      \strng{authornamehash}{2b942fc12476aaed63dd4782f37a5d23}
+      \strng{authorfullhash}{2b942fc12476aaed63dd4782f37a5d23}
+      \field{sortinit}{C}
+      \field{sortinithash}{963e9d84a3da2344e8833203de5aed05}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Business \& Economic Statistics}
+      \field{number}{3}
+      \field{title}{In-sample inference and forecasting in misspecified factor models}
+      \field{volume}{34}
+      \field{year}{2016}
+      \true{nocite}
+      \field{pages}{313\bibrangedash 338}
+      \range{pages}{26}
+    \endentry
+    \entry{de1993simpls}{article}{}
+      \name{author}{1}{}{%
+        {{hash=365b9063cb33624d609aba4953204b03}{%
+           family={De\bibnamedelima Jong},
+           familyi={D\bibinitperiod\bibinitdelim J\bibinitperiod},
+           given={Sijmen},
+           giveni={S\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Elsevier}%
+      }
+      \strng{namehash}{365b9063cb33624d609aba4953204b03}
+      \strng{fullhash}{365b9063cb33624d609aba4953204b03}
+      \strng{bibnamehash}{365b9063cb33624d609aba4953204b03}
+      \strng{authorbibnamehash}{365b9063cb33624d609aba4953204b03}
+      \strng{authornamehash}{365b9063cb33624d609aba4953204b03}
+      \strng{authorfullhash}{365b9063cb33624d609aba4953204b03}
+      \field{sortinit}{D}
+      \field{sortinithash}{2ef1bd9a78cc71eb74d7231c635177b8}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Chemometrics and intelligent laboratory systems}
+      \field{number}{3}
+      \field{title}{SIMPLS: an alternative approach to partial least squares regression}
+      \field{volume}{18}
+      \field{year}{1993}
+      \true{nocite}
+      \field{pages}{251\bibrangedash 263}
+      \range{pages}{13}
+    \endentry
+  \enddatalist
+\endrefsection
 \endinput
 

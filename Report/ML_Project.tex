@@ -151,35 +151,50 @@ In the notation of the \citeauthor{carrasco2016sample} paper, $U = \hat{\psi}$ a
 
 \subsection{Estimators}
 
-\citeauthor{carrasco2016sample} specify multiple different expressions for each of their four estimation methods. We tried For each estimator we choose the expression that is the most computationally efficient and whose optimized parameters are the closest to the tables presented by \citeauthor{carrasco2016sample}.
+\citeauthor{carrasco2016sample} specify multiple different expressions for each of their four estimation methods. We implemented each formulation of the method to check for accuracy and computational efficiency. We unfortunately found that for some of the estimation methods, the results were not consistent between the different formulations. Additionally, where possible, we vectorized the matrix sums to improve computation time. Lastly, no matter the formulation, for some of the estimators, we were not able to get the regularization parameters to agree exactly with the tables in the paper by \citeauthor{carrasco2016sample}.
 
-We can then express the estimators as follows: 
 
-\begin{itemize}
-	\item Ridge Estimator: \\
-	 \[\widehat{y} = M_{T}^{\alpha} y = X (S_{xx} + \alpha I)^{-1} S_{xy}\]
-	 where $I$ is the $(N \times N)$ identity matrix.
-	 
-	\item LF Estimator: \\
-\[\widehat{y} = M_{T}^{\alpha} y = X \sum_{j=1}^{\min (N, T)} \frac{\left(1-\left(1-d \widehat{\lambda}_{j}^{2}\right)^{1 / \alpha}\right)}{\widehat{\lambda}_{j}^{2}}\left\langle y, \hat{\psi}_{j}\right\rangle_{T} \frac{X^{\prime} \hat{\psi}_{j}}{T}\]
+For each estimator we choose the expression that is the most computationally efficient and whose optimized parameters are the closest to the tables presented by \citeauthor{carrasco2016sample}. The four estimation methods in the paper we replicated are:
+
+\subsubsection{Principal Components/Spectral Cutoff}
+
+For this estimator, the implementation we use is:
+
+\[\widehat{y} = M_{T}^{\alpha} y = \widehat{\Psi} \hat{\delta}_{PC}^{\alpha} = \widehat{\Psi} \left(\widehat{\Psi}^{\prime} \widehat{\Psi}\right)^{-1} \widehat{\Psi}^{\prime} y\]
+\[\text{ where } \widehat{\Psi} = \left[\widehat{\psi}_{1}\left|\widehat{\psi}_{2}\right| \ldots \mid \widehat{\psi}_{k}\right]\]
+
+As explained in the Notation section, $\hat{\Psi}$ is estimated from the singular value decomposition of $X$. The number of vectors $k$ included in $\hat{\Psi}$ is the regularization parameter that is optimized for the PC method. We decided to use this implementation as it was the most straightforward, agreed with the results from \citeauthor{carrasco2016sample}, and was fully vectorized.
+
+\subsubsection{Ridge Estimator}
+
+For the ridge estimator, the implementation we use is:
+
+\[\widehat{y} = M_{T}^{\alpha} y = X \hat{\delta}_{Ridge}^{\alpha} = X (S_{xx} + \alpha I)^{-1} S_{xy}\]
+where $I$ is the $(N \times N)$ identity matrix.
+
+For this estimator, we were not able to get the estimated $\alpha$ parameter to agree with the simulation results from \citeauthor{carrasco2016sample}. We also tested the implementation of the ridge which involves the eigenvectors of $\frac{X X^{T}}{T}$:
+
+\[M_{T}^{\alpha} y = \sum_{j=1}^{\min (N, T)} \frac{\hat{\lambda}_{j}^{2}}{\hat{\lambda}_{j}^{2}+\alpha}\left\langle y, \hat{\psi}_{j}\right\rangle_{T} \hat{\psi}_{j}\]
+
+However, this implementation yielded estimation results that were further away from the \citeauthor{carrasco2016sample} values, and took longer to implement, so we used the specification involving the regularized inverse of $S_xx$.
+
+\subsubsection{Landweber Fridman (LF) Estimator}
+
+For the LF estimator, we implemented:
+
+\[\widehat{y} = M_{T}^{\alpha} y = X \hat{\delta}_{LF}^{\alpha} = X \sum_{j=1}^{\min (N, T)} \frac{\left(1-\left(1-d \widehat{\lambda}_{j}^{2}\right)^{1 / \alpha}\right)}{\widehat{\lambda}_{j}^{2}}\left\langle y, \hat{\psi}_{j}\right\rangle_{T} \frac{X^{\prime} \hat{\psi}_{j}}{T}\]
 Here $d$ denotes XXXX. We follow \citeauthor{carrasco2016sample} and choose $d = 0.018/max(\lambda^2)$. XXXXX WHAT IS NOW LAMBDA SQ AGAIN XXXX.
 
-	\item Spectral Cutoff/Principal Components Estimator: \\
-\[\widehat{y} = M_{T}^{\alpha} y = \widehat{\Psi} \left(\widehat{\Psi}^{\prime} \widehat{\Psi}\right)^{-1} \widehat{\Psi}^{\prime} y\]
-\[\text{ where } \widehat{\Psi} = \left[\widehat{\psi}_{1}\left|\widehat{\psi}_{2}\right| \ldots \mid \widehat{\psi}_{k}\right]\]
-XXX Do we have to say something here about the fact that they are estimated? XXX
+With the LF estimator, the $\alpha$ values reported by \citeauthor{carrasco2016sample} were mostly indistiguishable from 0, so it was difficult to verify that we were implementing it correctly. However our values for the DOF of the LF estimator were not exactly as reported, but there was no other implementation to try.
 
-	\item Partial Least Squares Estimator: \\
+\subsubsection{Partial Least Squares (PLS) Estimator}
+
+For the PLS estimator, we initially implemented the specification:
 
 \[\widehat{y} = M_{T}^{\alpha} y = X V_{k}\left(V_{k}^{\prime} X^{\prime} X V_{k}\right)^{-1} V_{k}^{\prime} X^{\prime} y\]
-
 \[\text{ where } V_{k}=\left(X^{\prime} y, \quad\left(X^{\prime} X\right) X^{\prime} y, \ldots,\left(X^{\prime} X\right)^{k-1} X^{\prime} y\right)\]
 
-\end{itemize}
-
-\subsection{SIMPLS Algorithm}
-
-Notably we divert from \citeauthor{carrasco2016sample} to the extent that we implement PLS via the so called SIMPS algorithm. 
+With this implementation, we were not able to get our parameter estimates for $k$ to agree with the results of \citeauthor{carrasco2016sample}. We looked at how PLS regressions were implemented in various programming softwares, and came across an implementation known as the SIMPLS algorithm by \citeauthor{de1993simpls}. This algorithm for solving PLS is as follows:
 
 \begin{align}
 \nonumber S = X^{T} y & \\
@@ -190,6 +205,8 @@ Notably we divert from \citeauthor{carrasco2016sample} to the extent that we imp
 \nonumber &P_{k}[:, i - 1] = \frac{X^{T} T_{k}[:, i - 1]}{T_{k}[:, i - 1]^{T}T_{k}[:, i - 1]} \\
 \nonumber \widehat{y} = M^{\alpha}_{T} y &= X R_{k} (T^{T}_{k} T_{k})^{-1} T^{T}_{k} y
 \end{align}
+
+Utilising this algorithm both brought our estimated values of $k$ closer to those of \citeauthor{carrasco2016sample} and was computationally faster, so this is the method we used.
 
 \section{Selection Methods} \label{sec::cv}
 
@@ -206,11 +223,10 @@ where $\widehat{\sigma}_{\epsilon}^{2}$ is a consistent estimator of the varianc
 	\item Leave-one-out Cross Validation (LOO-CV): \\
 \[\hat{\alpha}=\arg \min _{\alpha \in A_{T}} \frac{1}{T} \sum_{t=1}^{T}\left(\frac{y_{i}-\hat{y}_{i, \alpha}}{1-M_{T}^{\alpha}[ii]}\right)^{2}\]
 
-XXX Can we rewrite the predicted values as the usual Mty? XXX
+% XXX Can we rewrite the predicted values as the usual Mty? XXX
 \end{itemize}
 
-Note that for PC $\operatorname{tr}\left(M_{T}^{\alpha}\right) = k$, i.e. the number of factors. As the trace can be seen as a measure for the effective degrees of freedom which guides the penalty parameter selection we also report it in the output tables (XXX IS THIS CORRECT?? XXX). Moreover, we only use LOO-CV for PLS.  
-
+Note that for PC and PLS $\operatorname{tr}\left(M_{T}^{\alpha}\right) = k$, i.e. the number of factors. For the Ridge and LF estimators, the trace of $M_{t}$ is equivalent to the degrees of freedom. Moreover, we only use LOO-CV for PLS.
 
 \section{Simulation Results}
 
@@ -222,35 +238,35 @@ XXXX DISCUSSION OF FINDINGS XXXX
 \input{Table_N100_T50_EvalGCV_Sims1000}
 \input{Table_N100_T50_EvalMallow_Sims1000}
 
-\begin{table}[h! ]
-    \centering
-    \caption*{N = 100, T=50, Simulations = 1000}
-    \begin{tabular}{c c}
-    DGP 1 & DGP 2 \\
-        \includegraphics[width=0.5\textwidth]{figures/N100_T50_DGP1_Sims1000.png} & \includegraphics[width=0.5\textwidth]{figures/N100_T50_DGP2_Sims1000.png} \\
-        DGP 3 & DGP 4 \\
-        \includegraphics[width=0.5\textwidth]{figures/N100_T50_DGP3_Sims1000} &
-        \includegraphics[width=0.5\textwidth]{figures/N100_T50_DGP4_Sims1000} \\
-        DGP 5 & DGP 6 \\
-        \includegraphics[width=0.5\textwidth]{figures/N100_T50_DGP5_Sims1000} &
-        \includegraphics[width=0.5\textwidth]{figures/N100_T50_DGP6_Sims1000}
-    \end{tabular}
-\end{table}
+% \begin{table}[h! ]
+%     \centering
+%     \caption*{N = 100, T=50, Simulations = 1000}
+%     \begin{tabular}{c c}
+%     DGP 1 & DGP 2 \\
+%         \includegraphics[width=0.5\textwidth]{figures/N100_T50_DGP1_Sims1000.png} & \includegraphics[width=0.5\textwidth]{figures/N100_T50_DGP2_Sims1000.png} \\
+%         DGP 3 & DGP 4 \\
+%         \includegraphics[width=0.5\textwidth]{figures/N100_T50_DGP3_Sims1000} &
+%         \includegraphics[width=0.5\textwidth]{figures/N100_T50_DGP4_Sims1000} \\
+%         DGP 5 & DGP 6 \\
+%         \includegraphics[width=0.5\textwidth]{figures/N100_T50_DGP5_Sims1000} &
+%         \includegraphics[width=0.5\textwidth]{figures/N100_T50_DGP6_Sims1000}
+%     \end{tabular}
+% \end{table}
 
-\begin{table}[h! ]
-    \centering
-    \caption*{N = 200, T=500, Simulations = 25}
-    \begin{tabular}{c c}
-    DGP 1 & DGP 2 \\
-        \includegraphics[width=0.5\textwidth]{figures/N200_T500_DGP1_Sims25.png} & \includegraphics[width=0.5\textwidth]{figures/N200_T500_DGP2_Sims25.png} \\
-        DGP 3 & DGP 4 \\
-        \includegraphics[width=0.5\textwidth]{figures/N200_T500_DGP3_Sims25} &
-        \includegraphics[width=0.5\textwidth]{figures/N200_T500_DGP4_Sims25} \\
-        DGP 5 & DGP 6 \\
-        \includegraphics[width=0.5\textwidth]{figures/N200_T500_DGP5_Sims25} &
-        \includegraphics[width=0.5\textwidth]{figures/N200_T500_DGP6_Sims25}
-    \end{tabular}
-\end{table}
+% \begin{table}[h! ]
+%     \centering
+%     \caption*{N = 200, T=500, Simulations = 25}
+%     \begin{tabular}{c c}
+%     DGP 1 & DGP 2 \\
+%         \includegraphics[width=0.5\textwidth]{figures/N200_T500_DGP1_Sims25.png} & \includegraphics[width=0.5\textwidth]{figures/N200_T500_DGP2_Sims25.png} \\
+%         DGP 3 & DGP 4 \\
+%         \includegraphics[width=0.5\textwidth]{figures/N200_T500_DGP3_Sims25} &
+%         \includegraphics[width=0.5\textwidth]{figures/N200_T500_DGP4_Sims25} \\
+%         DGP 5 & DGP 6 \\
+%         \includegraphics[width=0.5\textwidth]{figures/N200_T500_DGP5_Sims25} &
+%         \includegraphics[width=0.5\textwidth]{figures/N200_T500_DGP6_Sims25}
+%     \end{tabular}
+% \end{table}
 
 \clearpage
 

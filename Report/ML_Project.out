@@ -1,6 +1,16 @@
 \BOOKMARK [1][-]{section.1}{Introduction}{}% 1
-\BOOKMARK [1][-]{section.2}{Data Generating Process}{}% 2
-\BOOKMARK [1][-]{section.3}{Estimation Methods}{}% 3
-\BOOKMARK [2][-]{subsection.3.1}{Via SIMPLS Algorithm}{section.3}% 4
-\BOOKMARK [1][-]{section.4}{Evaluation Methods}{}% 5
-\BOOKMARK [1][-]{section.5}{Empirical Application}{}% 6
+\BOOKMARK [1][-]{section.2}{Factor Models in Economics}{}% 2
+\BOOKMARK [1][-]{section.3}{Data Generating Process}{}% 3
+\BOOKMARK [1][-]{section.4}{Estimation Methods}{}% 4
+\BOOKMARK [2][-]{subsection.4.1}{Notation}{section.4}% 5
+\BOOKMARK [2][-]{subsection.4.2}{Estimators}{section.4}% 6
+\BOOKMARK [3][-]{subsubsection.4.2.1}{Principal Components/Spectral Cutoff}{subsection.4.2}% 7
+\BOOKMARK [3][-]{subsubsection.4.2.2}{Ridge Estimator}{subsection.4.2}% 8
+\BOOKMARK [3][-]{subsubsection.4.2.3}{Landweber Fridman \(LF\) Estimator}{subsection.4.2}% 9
+\BOOKMARK [3][-]{subsubsection.4.2.4}{Partial Least Squares \(PLS\) Estimator}{subsection.4.2}% 10
+\BOOKMARK [1][-]{section.5}{Selection Methods}{}% 11
+\BOOKMARK [1][-]{section.6}{Simulation Results}{}% 12
+\BOOKMARK [1][-]{section.7}{Empirical Application}{}% 13
+\BOOKMARK [2][-]{subsection.7.1}{Introduction and Data}{section.7}% 14
+\BOOKMARK [2][-]{subsection.7.2}{Evaluation}{section.7}% 15
+\BOOKMARK [2][-]{subsection.7.3}{Results and Discussion}{section.7}% 16

@@ -79,7 +79,7 @@
       <file>ML_Project.bcf</file>
     </requires>
     <requires type="editable">
-      <file>references.bib</file>
+      <file>References.bib</file>
     </requires>
   </external>
 </requests>
